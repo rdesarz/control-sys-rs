@@ -1,0 +1,26 @@
+[package]
+name = "control-sys-rs"
+version = "0.1.0"
+edition = "2021"
+
+description = "Control-sys.rs. A Control System library implemented in Rust to design and analyze control systems."
+authors = ["Romain Desarzens"]
+readme = "README.md"
+
+include = [
+    "/README.md",
+    "/src/",
+    "/examples/",
+]
+
+[dependencies]
+plotters = "0.3.3"
+nalgebra = "0.33.2"
+
+[[bin]]
+name = "step_response"
+path = "examples/step_response.rs"
+
+[[bin]]
+name = "controllability"
+path = "examples/controllability.rs"

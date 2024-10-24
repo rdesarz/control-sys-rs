@@ -1,0 +1,14 @@
+version: "3.1"
+services:
+  control-sys-rs:
+    container_name: control-sys-rs
+    build:
+      context: .
+    restart: "unless-stopped"
+    network_mode: "host"
+    privileged: true
+    volumes:
+      - ~/.ssh:/root/.ssh
+    environment:
+      - DISPLAY=${DISPLAY}
+    tty: true
