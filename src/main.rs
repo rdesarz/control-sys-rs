@@ -76,7 +76,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Draw the step response
     {
-        let root = BitMapBackend::new("step_response.png", (800, 600)).into_drawing_area();
+        let root = BitMapBackend::new("img/step_response.png", (800, 600)).into_drawing_area();
         root.fill(&WHITE)?;
 
         let max_y = step_response
@@ -124,7 +124,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Draw the control
     {
-        let root = BitMapBackend::new("control.png", (800, 600)).into_drawing_area();
+        let root = BitMapBackend::new("img/control.png", (800, 600)).into_drawing_area();
         root.fill(&WHITE)?;
 
         let max_y = outputs.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
