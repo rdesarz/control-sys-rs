@@ -114,7 +114,11 @@ pub mod mpc {
             (x_kp1, y_k)
         }
 
-        pub fn compute_control_input(&mut self, timestep: usize, state: &na::DVector::<f64>) -> na::DVector::<f64> {
+        pub fn compute_control_input(
+            &mut self,
+            timestep: usize,
+            state: &na::DVector<f64>,
+        ) -> na::DVector<f64> {
             // Extract the segment of the desired control trajectory
             let desired_ctrl_traj = self
                 .desired_ctrl_traj_total
@@ -122,9 +126,7 @@ pub mod mpc {
                 .into_owned();
 
             // Compute the vector s
-            let vec_s = (desired_ctrl_traj
-                - &self.mat_o * state)
-            .into_owned();
+            let vec_s = (desired_ctrl_traj - &self.mat_o * state).into_owned();
 
             // Compute the control sequence
             let input_sequence_computed = &self.gain_matrix * vec_s;

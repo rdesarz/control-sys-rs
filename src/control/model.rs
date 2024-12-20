@@ -1,5 +1,53 @@
 extern crate nalgebra as na;
 
+pub struct ContinuousStateSpaceModel {
+    mat_a: na::DMatrix<f64>,
+    mat_b: na::DMatrix<f64>,
+    mat_c: na::DMatrix<f64>,
+    mat_d: na::DMatrix<f64>,
+}
+
+impl ContinuousStateSpaceModel {
+    pub fn new(
+        mat_a: &na::DMatrix<f64>,
+        mat_b: &na::DMatrix<f64>,
+        mat_c: &na::DMatrix<f64>,
+        mat_d: &na::DMatrix<f64>,
+    ) -> ContinuousStateSpaceModel {
+        ContinuousStateSpaceModel {
+            mat_a: mat_a.clone(),
+            mat_b: mat_b.clone(),
+            mat_c: mat_c.clone(),
+            mat_d: mat_d.clone(),
+        }
+    }
+
+    pub fn from_transfer_function(tf: &TransferFunction) -> ContinuousStateSpaceModel {
+        let mat_a = na::dmatrix![0.0f64; 0.0f64];
+        let mat_b = na::dmatrix![0.0f64; 0.0f64];
+        let mat_c = na::dmatrix![0.0f64; 0.0f64];
+        let mat_d = na::dmatrix![0.0f64; 0.0f64];
+
+        ContinuousStateSpaceModel::new(&mat_a, &mat_b, &mat_c, &mat_d)
+    }
+
+    pub fn get_mat_a(&self) -> &na::DMatrix<f64> {
+        return &self.mat_a;
+    }
+
+    pub fn get_mat_b(&self) -> &na::DMatrix<f64> {
+        return &self.mat_b;
+    }
+
+    pub fn get_mat_c(&self) -> &na::DMatrix<f64> {
+        return &self.mat_c;
+    }
+
+    pub fn get_mat_d(&self) -> &na::DMatrix<f64> {
+        return &self.mat_d;
+    }
+}
+
 pub trait DiscreteStateSpaceModel {
     fn get_mat_a(&self) -> &na::DMatrix<f64>;
     fn get_mat_b(&self) -> &na::DMatrix<f64>;
@@ -171,4 +219,28 @@ pub mod mpc {
 pub struct TransferFunction {
     numerator_coeff: Vec<f64>,
     denominator: Vec<f64>,
+    constant: f64,
+}
+
+impl TransferFunction {
+    pub fn new(numerator_coeff: &[f64], denominator: &[f64], constant: f64) -> TransferFunction {
+        TransferFunction {
+            numerator_coeff: numerator_coeff.to_vec(),
+            denominator: denominator.to_vec(),
+            constant: constant,
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_compute_state_space_model() {
+        let tf = TransferFunction::new(&[1.0, 2.0, 3.0], &[1.0, 4.0, 6.0], 0.0);
+
+        let ss_model = ContinuousStateSpaceModel::from_transfer_function(&tf);
+        
+    }
 }

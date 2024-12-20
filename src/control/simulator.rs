@@ -47,9 +47,10 @@ pub fn compute_system_response(
     system_response
 }
 
-pub fn step(model: &impl DiscreteStateSpaceModel,
-            duration: f64) -> (na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>)
-{
+pub fn step(
+    model: &impl DiscreteStateSpaceModel,
+    duration: f64,
+) -> (na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>) {
     // Initial state is zero for a step response
     let initial_state = na::DVector::<f64>::zeros(model.get_mat_a().nrows());
 

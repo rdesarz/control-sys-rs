@@ -16,7 +16,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let params = model::dc_motor::Parameters::default();
     let model = Rc::new(model::dc_motor::Model::new(params, sampling_dt));
 
-    let (step_response, step, _) = simulator::step(<Rc<model::dc_motor::Model> as Borrow<model::dc_motor::Model>>::borrow(&model), 10.0);
+    let (step_response, step, _) = simulator::step(
+        <Rc<model::dc_motor::Model> as Borrow<model::dc_motor::Model>>::borrow(&model),
+        10.0,
+    );
 
     // Define parameters
     let f = 20usize;
@@ -50,13 +53,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     for current_timestep in 0..time_steps - f {
         // Compute input
-        let input = mpc.compute_control_input(current_timestep, &states.column(current_timestep).into_owned());
-
-        // Compute the next state and output
-        let (next_state, next_output) = mpc.propagate_dynamics(
-            &input,
+        let input = mpc.compute_control_input(
+            current_timestep,
             &states.column(current_timestep).into_owned(),
         );
+
+        // Compute the next state and output
+        let (next_state, next_output) =
+            mpc.propagate_dynamics(&input, &states.column(current_timestep).into_owned());
 
         // Append the lists
         states = na::stack![states, next_state];
@@ -79,10 +83,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .iter()
             .cloned()
             .fold(f64::NEG_INFINITY, f64::max);
-        let min_y = step_response
-            .iter()
-            .cloned()
-            .fold(f64::INFINITY, f64::min);
+        let min_y = step_response.iter().cloned().fold(f64::INFINITY, f64::min);
         let mut chart = ChartBuilder::on(&root)
             .caption("System Output Y", ("sans-serif", 20))
             .margin(10)
@@ -126,11 +127,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         let root = BitMapBackend::new("control.png", (800, 600)).into_drawing_area();
         root.fill(&WHITE)?;
 
-        let max_y = 
-            outputs
-            .iter()
-            .cloned()
-            .fold(f64::NEG_INFINITY, f64::max);
+        let max_y = outputs.iter().cloned().fold(f64::NEG_INFINITY, f64::max);
         let min_y = outputs.iter().cloned().fold(f64::INFINITY, f64::min);
         let mut chart = ChartBuilder::on(&root)
             .caption("System Output Y", ("sans-serif", 20))
@@ -142,8 +139,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         chart.configure_mesh().draw()?;
 
         // Plot input
-        let inputs_series: Vec<(i32, f64)> = 
-            inputs
+        let inputs_series: Vec<(i32, f64)> = inputs
             .row(0)
             .iter()
             .enumerate()
@@ -156,8 +152,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             .legend(move |(x, y)| PathElement::new([(x, y), (x + 20, y)], &Palette99::pick(0)));
 
         // Plot system response
-        let outputs_serie: Vec<(i32, f64)> = 
-            outputs
+        let outputs_serie: Vec<(i32, f64)> = outputs
             .iter()
             .enumerate()
             .map(|(i, &val)| (i as i32, val as f64))
