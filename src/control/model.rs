@@ -167,3 +167,8 @@ pub mod mpc {
         }
     }
 }
+
+pub struct TransferFunction {
+    numerator_coeff: Vec<f64>,
+    denominator: Vec<f64>,
+}
