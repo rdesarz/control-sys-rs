@@ -7,17 +7,10 @@ RUN apt-get update \
         libopenblas-dev \
         gfortran \
         build-essential \
-        sudo \
-        npm
+        sudo 
 
 # Install rustfmt
 RUN rustup component add rustfmt
-
-# Make sure latest version of npm is installed
-RUN npm install npm@latest -g
-
-# Install rust wasm
-RUN curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
 
 # Install cargo generate
 RUN cargo install cargo-generate
