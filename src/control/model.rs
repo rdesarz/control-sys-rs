@@ -28,8 +28,7 @@ impl ContinuousStateSpaceModel {
         let mat_d = na::dmatrix![0.0f64; 0.0f64];
 
         let mut mat_b = na::DMatrix::<f64>::zeros(tf.denominator_coeffs.len(), 1);
-        for (i, value) in tf.denominator_coeffs.iter().enumerate()
-        {
+        for (i, value) in tf.denominator_coeffs.iter().enumerate() {
             mat_b[(i, 0)] = value.clone();
         }
 
@@ -228,9 +227,11 @@ pub struct TransferFunction {
 }
 
 impl TransferFunction {
-
-
-    pub fn new(numerator_coeffs: &[f64], denominator_coeffs: &[f64], constant: f64) -> TransferFunction {
+    pub fn new(
+        numerator_coeffs: &[f64],
+        denominator_coeffs: &[f64],
+        constant: f64,
+    ) -> TransferFunction {
         TransferFunction {
             numerator_coeffs: numerator_coeffs.to_vec(),
             denominator_coeffs: denominator_coeffs.to_vec(),
@@ -248,6 +249,5 @@ mod tests {
         let tf = TransferFunction::new(&[1.0, 2.0, 3.0], &[1.0, 4.0, 6.0], 0.0);
 
         let ss_model = ContinuousStateSpaceModel::from_transfer_function(&tf);
-
     }
 }
