@@ -9,7 +9,7 @@ Development can be made in a Docker container following these steps:
 ```
 docker compose build
 docker compose up -d
-docker exec -it rust-dev
+docker exec -it control-sys-rs bash
 ```
 
 Then run the code:
