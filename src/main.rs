@@ -8,6 +8,7 @@ use plotters::prelude::*;
 
 use std::borrow::Borrow;
 use std::rc::Rc;
+use std::fs;
 
 extern crate nalgebra as na;
 
@@ -73,6 +74,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             inputs = na::stack![inputs, input];
         }
     }
+
+    // Create a folder for results
+    fs::create_dir("img").unwrap();
 
     // Draw the step response
     {
