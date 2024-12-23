@@ -1,6 +1,6 @@
 version: "3.1"
 services:
-  rust-dev:
+  control-sys-rs:
     container_name: control-sys-rs
     build:
       context: .
