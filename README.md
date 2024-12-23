@@ -1,9 +1,19 @@
 # Control system library 
 
-To setup Docker container
+A control system library written in Rust. This is a work in progress. 
 
-`docker compose build`
+## Development
 
-`docker compose up -d`
+Development can be made in a Docker container following these steps: 
 
-`docker exec -it rust-dev`
+```
+docker compose build
+docker compose up -d
+docker exec -it rust-dev
+```
+
+Then run the code:
+
+```
+cargo run
+```

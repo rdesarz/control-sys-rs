@@ -1,7 +1,7 @@
 version: "3.1"
 services:
   rust-dev:
-    container_name: rust-dev
+    container_name: control-sys-rs
     build:
       context: .
     restart: "unless-stopped"
