@@ -76,7 +76,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Create a folder for results
-    fs::create_dir("img").unwrap();
+    fs::create_dir("img").unwrap_or_else(|error| {
+        println!("The folder img already exists, no need to create it.");
+    });
 
     // Draw the step response
     {
