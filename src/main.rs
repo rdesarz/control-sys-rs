@@ -7,8 +7,8 @@ use control_sys_rs::control::trajectory;
 use plotters::prelude::*;
 
 use std::borrow::Borrow;
-use std::rc::Rc;
 use std::fs;
+use std::rc::Rc;
 
 extern crate nalgebra as na;
 
