@@ -253,6 +253,6 @@ mod tests {
     fn test_compute_state_space_model() {
         let tf = TransferFunction::new(&[1.0, 2.0, 3.0], &[1.0, 4.0, 6.0], 0.0);
 
-        let ss_model = ContinuousStateSpaceModel::from_transfer_function(&tf);
+        let ss_model = ContinuousStateSpaceModel::realize_from_tf(&tf);
     }
 }
