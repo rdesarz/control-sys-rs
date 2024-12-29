@@ -24,9 +24,9 @@ impl ContinuousStateSpaceModel {
 
     pub fn realize_from_tf(tf: &TransferFunction) -> ContinuousStateSpaceModel {
         // TODO: Still need to normalize coefficients
-    
-        let mat_a = na::dmatrix![0.0f64; 0.0f64];
-        
+        let mut mat_a = na::DMatrix::<f64>::zeros(tf.denominator_coeffs.len(), tf.denominator_coeffs.len());
+        mat_a.view_range_mut(1.., 0..tf.denominator_coeffs.len()-1).copy_from(&na::DMatrix::<f64>::identity(tf.denominator_coeffs.len()-1, tf.denominator_coeffs.len()-1));
+
         let mut mat_b = na::DMatrix::<f64>::zeros(tf.denominator_coeffs.len(), 1);
         for (i, value) in tf.denominator_coeffs.iter().enumerate() {
             mat_b[(i, 0)] = value.clone();
