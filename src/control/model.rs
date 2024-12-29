@@ -24,11 +24,16 @@ impl ContinuousStateSpaceModel {
 
     pub fn realize_from_tf(tf: &TransferFunction) -> ContinuousStateSpaceModel {
         // TODO: Still need to normalize coefficients
-        let mut mat_a = na::DMatrix::<f64>::zeros(tf.denominator_coeffs.len(), tf.denominator_coeffs.len());
-        mat_a.view_range_mut(0..tf.denominator_coeffs.len()-1, 1..).copy_from(&na::DMatrix::<f64>::identity(tf.denominator_coeffs.len()-1, tf.denominator_coeffs.len()-1));
+        let n_states = tf.denominator_coeffs.len();
+
+        let mut mat_a = na::DMatrix::<f64>::zeros(n_states, n_states);
+        mat_a.view_range_mut(0..n_states - 1, 1..).copy_from(&na::DMatrix::<f64>::identity(n_states - 1, n_states - 1));
+        for (i, value) in tf.denominator_coeffs.iter().rev().enumerate() {
+            mat_a[(n_states - 1, i)] = -value.clone();
+        }
 
         let mut mat_b = na::DMatrix::<f64>::zeros(tf.denominator_coeffs.len(), 1);
-        for (i, value) in tf.denominator_coeffs.iter().enumerate() {
+        for (i, value) in tf.denominator_coeffs.iter().rev().enumerate() {
             mat_b[(i, 0)] = value.clone();
         }
 
@@ -261,9 +266,12 @@ mod tests {
 
         let ss_size = ss_model.state_space_size();
 
+        assert_eq!(ss_model.get_mat_a().ncols(), 3);
+        assert_eq!(ss_model.get_mat_a().nrows(), 3);
+        assert_eq!(ss_model.get_mat_a()[(2, 0)], -6.0f64);
+        assert_eq!(ss_model.get_mat_a()[(2, 1)], -4.0f64);
+        assert_eq!(ss_model.get_mat_a()[(2, 2)], -1.0f64);
         assert_eq!(ss_model.get_mat_a()[(0, 1)], 1.0f64);
-        assert_eq!(ss_model.get_mat_a()[(0, ss_size-1)], -6.0f64);
-        assert_eq!(ss_model.get_mat_a()[(1, ss_size-1)], -4.0f64);
-        assert_eq!(ss_model.get_mat_a()[(2, ss_size-1)], -1.0f64);
+        assert_eq!(ss_model.get_mat_a()[(1, 2)], 1.0f64);
     }
 }
