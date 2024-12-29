@@ -23,7 +23,7 @@ impl ContinuousStateSpaceModel {
     }
 
     pub fn realize_from_tf(tf: &TransferFunction) -> ContinuousStateSpaceModel {
-        // TODO: Still need to normalize coefficients
+        // TODO: Still need to normalize coefficients and check for size
         let n_states = tf.denominator_coeffs.len();
 
         let mut mat_a = na::DMatrix::<f64>::zeros(n_states, n_states);
@@ -32,17 +32,17 @@ impl ContinuousStateSpaceModel {
             mat_a[(n_states - 1, i)] = -value.clone();
         }
 
-        let mut mat_b = na::DMatrix::<f64>::zeros(tf.denominator_coeffs.len(), 1);
-        for (i, value) in tf.denominator_coeffs.iter().rev().enumerate() {
-            mat_b[(i, 0)] = value.clone();
-        }
+        let mut mat_b = na::DMatrix::<f64>::zeros(tf.numerator_coeffs.len(), 1);
+        mat_b[(tf.numerator_coeffs.len() - 1, 0)] = 1.0f64;
 
         let mut mat_c = na::DMatrix::<f64>::zeros(tf.numerator_coeffs.len(), 1);
-        mat_c[(tf.numerator_coeffs.len() - 1, 0)] = 1.0f64;
+        for (i, value) in tf.numerator_coeffs.iter().rev().enumerate() {
+            mat_c[(i, 0)] = value.clone();
+        }
 
         let mat_d = na::dmatrix![tf.constant];
 
-        ContinuousStateSpaceModel::new(&mat_a, &mat_b, &mat_c, &mat_d)
+        ContinuousStateSpaceModel{ mat_a: mat_a, mat_b: mat_b, mat_c: mat_c, mat_d: mat_d}
     }
 
     pub fn get_mat_a(&self) -> &na::DMatrix<f64> {
@@ -260,18 +260,34 @@ mod tests {
 
     #[test]
     fn test_compute_state_space_model_nominal() {
-        let tf = TransferFunction::new(&[1.0, 2.0, 3.0], &[1.0, 4.0, 6.0], 0.0);
+        let tf = TransferFunction::new(&[1.0, 2.0, 3.0], &[1.0, 4.0, 6.0], 8.0);
 
         let ss_model = ContinuousStateSpaceModel::realize_from_tf(&tf);
 
         let ss_size = ss_model.state_space_size();
 
-        assert_eq!(ss_model.get_mat_a().ncols(), 3);
-        assert_eq!(ss_model.get_mat_a().nrows(), 3);
+        // Check mat A
+        assert_eq!(ss_model.get_mat_a().shape(), (3, 3));
         assert_eq!(ss_model.get_mat_a()[(2, 0)], -6.0f64);
         assert_eq!(ss_model.get_mat_a()[(2, 1)], -4.0f64);
         assert_eq!(ss_model.get_mat_a()[(2, 2)], -1.0f64);
         assert_eq!(ss_model.get_mat_a()[(0, 1)], 1.0f64);
         assert_eq!(ss_model.get_mat_a()[(1, 2)], 1.0f64);
+
+        // Check mat B
+        assert_eq!(ss_model.get_mat_b().shape(), (3, 1));
+        assert_eq!(ss_model.get_mat_b()[(0, 0)], 0.0f64);
+        assert_eq!(ss_model.get_mat_b()[(1, 0)], 0.0f64);
+        assert_eq!(ss_model.get_mat_b()[(2, 0)], 1.0f64);
+
+        // Check mat C
+        assert_eq!(ss_model.get_mat_c().shape(), (3, 1));
+        assert_eq!(ss_model.get_mat_c()[(0, 0)], 3.0f64);
+        assert_eq!(ss_model.get_mat_c()[(1, 0)], 2.0f64);
+        assert_eq!(ss_model.get_mat_c()[(2, 0)], 1.0f64);
+
+        // Check mat D
+        assert_eq!(ss_model.get_mat_d().shape(), (1, 1));
+        assert_eq!(ss_model.get_mat_d()[(0, 0)], 8.0f64);
     }
 }
