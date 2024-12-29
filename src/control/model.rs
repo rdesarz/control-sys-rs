@@ -55,6 +55,10 @@ impl ContinuousStateSpaceModel {
     pub fn get_mat_d(&self) -> &na::DMatrix<f64> {
         return &self.mat_d;
     }
+
+    pub fn state_space_size(&self) -> usize {
+        return self.mat_a.ncols();
+    }
 }
 
 pub trait DiscreteStateSpaceModel {
@@ -255,6 +259,11 @@ mod tests {
 
         let ss_model = ContinuousStateSpaceModel::realize_from_tf(&tf);
 
+        let ss_size = ss_model.state_space_size();
+
         assert_eq!(ss_model.get_mat_a()[(0, 1)], 1.0f64);
+        assert_eq!(ss_model.get_mat_a()[(0, ss_size-1)], -6.0f64);
+        assert_eq!(ss_model.get_mat_a()[(1, ss_size-1)], -4.0f64);
+        assert_eq!(ss_model.get_mat_a()[(2, ss_size-1)], -1.0f64);
     }
 }
