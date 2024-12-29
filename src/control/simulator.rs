@@ -1,9 +1,9 @@
 use nalgebra as na;
 
-use crate::control::model::DiscreteStateSpaceModel;
+use crate::control::model::{StateSpaceModel, Discrete};
 
 fn system_simulate(
-    model: &impl DiscreteStateSpaceModel,
+    model: &(impl StateSpaceModel + Discrete),
     mat_u: &na::DMatrix<f64>,
     x0: &na::DVector<f64>,
 ) -> (na::DMatrix<f64>, na::DMatrix<f64>) {
@@ -35,7 +35,7 @@ fn system_simulate(
 }
 
 pub fn compute_system_response(
-    model: &impl DiscreteStateSpaceModel,
+    model: &(impl StateSpaceModel + Discrete),
     input: &na::DMatrix<f64>,
     initial_state: &na::DVector<f64>,
 ) -> Vec<f64> {
@@ -48,7 +48,7 @@ pub fn compute_system_response(
 }
 
 pub fn step(
-    model: &impl DiscreteStateSpaceModel,
+    model: &(impl StateSpaceModel + Discrete),
     duration: f64,
 ) -> (na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>) {
     // Initial state is zero for a step response
