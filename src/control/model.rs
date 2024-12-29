@@ -25,12 +25,14 @@ impl ContinuousStateSpaceModel {
     pub fn realize_from_tf(tf: &TransferFunction) -> ContinuousStateSpaceModel {
         let mat_a = na::dmatrix![0.0f64; 0.0f64];
         let mat_c = na::dmatrix![0.0f64; 0.0f64];
-        let mat_d = na::dmatrix![0.0f64; 0.0f64];
+        
 
         let mut mat_b = na::DMatrix::<f64>::zeros(tf.denominator_coeffs.len(), 1);
         for (i, value) in tf.denominator_coeffs.iter().enumerate() {
             mat_b[(i, 0)] = value.clone();
         }
+
+        let mat_d = na::dmatrix![tf.constant];
 
         ContinuousStateSpaceModel::new(&mat_a, &mat_b, &mat_c, &mat_d)
     }
