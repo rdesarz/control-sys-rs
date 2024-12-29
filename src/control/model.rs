@@ -27,7 +27,9 @@ impl ContinuousStateSpaceModel {
         let n_states = tf.denominator_coeffs.len();
 
         let mut mat_a = na::DMatrix::<f64>::zeros(n_states, n_states);
-        mat_a.view_range_mut(0..n_states - 1, 1..).copy_from(&na::DMatrix::<f64>::identity(n_states - 1, n_states - 1));
+        mat_a
+            .view_range_mut(0..n_states - 1, 1..)
+            .copy_from(&na::DMatrix::<f64>::identity(n_states - 1, n_states - 1));
         for (i, value) in tf.denominator_coeffs.iter().rev().enumerate() {
             mat_a[(n_states - 1, i)] = -value.clone();
         }
@@ -42,7 +44,12 @@ impl ContinuousStateSpaceModel {
 
         let mat_d = na::dmatrix![tf.constant];
 
-        ContinuousStateSpaceModel{ mat_a: mat_a, mat_b: mat_b, mat_c: mat_c, mat_d: mat_d}
+        ContinuousStateSpaceModel {
+            mat_a: mat_a,
+            mat_b: mat_b,
+            mat_c: mat_c,
+            mat_d: mat_d,
+        }
     }
 
     pub fn get_mat_a(&self) -> &na::DMatrix<f64> {
