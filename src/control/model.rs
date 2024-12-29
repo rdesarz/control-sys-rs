@@ -25,7 +25,7 @@ impl ContinuousStateSpaceModel {
     pub fn realize_from_tf(tf: &TransferFunction) -> ContinuousStateSpaceModel {
         // TODO: Still need to normalize coefficients
         let mut mat_a = na::DMatrix::<f64>::zeros(tf.denominator_coeffs.len(), tf.denominator_coeffs.len());
-        mat_a.view_range_mut(1.., 0..tf.denominator_coeffs.len()-1).copy_from(&na::DMatrix::<f64>::identity(tf.denominator_coeffs.len()-1, tf.denominator_coeffs.len()-1));
+        mat_a.view_range_mut(0..tf.denominator_coeffs.len()-1, 1..).copy_from(&na::DMatrix::<f64>::identity(tf.denominator_coeffs.len()-1, tf.denominator_coeffs.len()-1));
 
         let mut mat_b = na::DMatrix::<f64>::zeros(tf.denominator_coeffs.len(), 1);
         for (i, value) in tf.denominator_coeffs.iter().enumerate() {
@@ -250,9 +250,11 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_compute_state_space_model() {
+    fn test_compute_state_space_model_nominal() {
         let tf = TransferFunction::new(&[1.0, 2.0, 3.0], &[1.0, 4.0, 6.0], 0.0);
 
         let ss_model = ContinuousStateSpaceModel::realize_from_tf(&tf);
+
+        assert_eq!(ss_model.get_mat_a()[(0, 1)], 1.0f64);
     }
 }
