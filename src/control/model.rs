@@ -22,7 +22,7 @@ impl ContinuousStateSpaceModel {
         }
     }
 
-    pub fn from_transfer_function(tf: &TransferFunction) -> ContinuousStateSpaceModel {
+    pub fn realize_from_tf(tf: &TransferFunction) -> ContinuousStateSpaceModel {
         let mat_a = na::dmatrix![0.0f64; 0.0f64];
         let mat_c = na::dmatrix![0.0f64; 0.0f64];
         let mat_d = na::dmatrix![0.0f64; 0.0f64];
