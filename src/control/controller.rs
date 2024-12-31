@@ -4,7 +4,7 @@ pub mod mpc {
 
     use crate::control::model::{Discrete, StateSpaceModel};
 
-    trait DiscreteStateSpaceModel: StateSpaceModel + Discrete {}
+    pub trait DiscreteStateSpaceModel: StateSpaceModel + Discrete {}
 
     pub struct Controller {
         model: Rc<dyn DiscreteStateSpaceModel>,
