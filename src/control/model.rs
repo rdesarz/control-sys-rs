@@ -11,6 +11,8 @@ pub trait Discrete {
     fn get_sampling_dt(&self) -> f64;
 }
 
+pub trait DiscreteStateSpaceModel: StateSpaceModel + Discrete {}
+
 pub struct ContinuousStateSpaceModel {
     mat_a: na::DMatrix<f64>,
     mat_b: na::DMatrix<f64>,

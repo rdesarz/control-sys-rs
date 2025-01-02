@@ -1,7 +1,6 @@
 use control_sys_rs::control::controller;
 use control_sys_rs::control::model;
-use control_sys_rs::control::model::{StateSpaceModel, Discrete};
-use control_sys_rs::control::controller::mpc::DiscreteStateSpaceModel;
+use control_sys_rs::control::model::StateSpaceModel;
 use control_sys_rs::control::simulator;
 use control_sys_rs::control::trajectory;
 
