@@ -12,6 +12,7 @@ pub trait Discrete {
 }
 
 pub trait DiscreteStateSpaceModel: StateSpaceModel + Discrete {}
+impl<T> DiscreteStateSpaceModel for T where T: StateSpaceModel + Discrete {}
 
 pub struct ContinuousStateSpaceModel {
     mat_a: na::DMatrix<f64>,
