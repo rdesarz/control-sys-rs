@@ -89,6 +89,35 @@ impl StateSpaceModel for ContinuousStateSpaceModel {
     }
 }
 
+pub struct DiscreteStateSpaceModelStateSpaceModel {
+    mat_a: na::DMatrix<f64>,
+    mat_b: na::DMatrix<f64>,
+    mat_c: na::DMatrix<f64>,
+    mat_d: na::DMatrix<f64>,
+}
+
+impl StateSpaceModel for DiscreteStateSpaceModel {
+    fn get_mat_a(&self) -> &na::DMatrix<f64> {
+        return &self.mat_a;
+    }
+
+    fn get_mat_b(&self) -> &na::DMatrix<f64> {
+        return &self.mat_b;
+    }
+
+    fn get_mat_c(&self) -> &na::DMatrix<f64> {
+        return &self.mat_c;
+    }
+
+    fn get_mat_d(&self) -> &na::DMatrix<f64> {
+        return &self.mat_d;
+    }
+}
+
+impl Discrete for DiscreteStateSpaceModel {
+    
+}
+
 fn discretize_forward_euler(model: &impl ContinuousStateSpaceModel, sampling_dt: f64) -> DiscreteStateSpaceModel {
     let mat_i = na::DMatrix::<f64>::identity(model.get_mat_a().nrows(), model.get_mat_a().nrows());
     let mat_a = (mat_i - model.get_mat_a().scale(sampling_dt)).try_inverse().unwrap();
@@ -98,7 +127,7 @@ fn discretize_forward_euler(model: &impl ContinuousStateSpaceModel, sampling_dt:
 }
 
 pub mod dc_motor {
-
+    build_
     extern crate nalgebra as na;
     use crate::control::model::{Discrete, StateSpaceModel};
     use std::default::Default;
