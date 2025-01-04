@@ -194,19 +194,7 @@ pub mod dc_motor {
         let mat_cc = na::dmatrix![1.0, 0.0];
 
         // Model discretization
-        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
-        let mat_a = (mat_i - mat_ac.scale(sampling_dt)).try_inverse().unwrap();
-        let mat_b = &mat_a * mat_bc.scale(sampling_dt);
-        let mat_c = mat_cc;
-        let mat_d = na::dmatrix![];
-
-        DiscreteStateSpaceModel {
-            mat_a: mat_a,
-            mat_b: mat_b,
-            mat_c: mat_c,
-            mat_d: mat_d,
-            sampling_dt: sampling_dt,
-        }
+        DiscreteStateSpaceModel::from_continuous_matrix_forward_euler(&mat_ac, &mat_bc, &mat_cc, &na::dmatrix![0.0], sampling_dt)
     }
 }
 
@@ -249,21 +237,10 @@ pub mod mpc {
         ];
         let mat_bc = na::dmatrix![0.0; 0.0; 0.0; 1.0 / params.m2];
         let mat_cc = na::dmatrix![1.0, 0.0, 0.0, 0.0];
+        let mat_dc = na::dmatrix![0.0];
 
         // Model discretization
-        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
-        let mat_a = (mat_i - mat_ac.scale(sampling_dt)).try_inverse().unwrap();
-        let mat_b = &mat_a * mat_bc.scale(sampling_dt);
-        let mat_c = mat_cc;
-        let mat_d = na::dmatrix![0.0f64];
-
-        DiscreteStateSpaceModel {
-            mat_a: mat_a,
-            mat_b: mat_b,
-            mat_c: mat_c,
-            mat_d: mat_d,
-            sampling_dt: sampling_dt,
-        }
+        DiscreteStateSpaceModel::from_continuous_matrix_forward_euler(&mat_ac, &mat_bc, &mat_cc, &mat_dc, sampling_dt)
     }
 }
 
