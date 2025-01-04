@@ -134,7 +134,13 @@ fn discretize_forward_euler(
     let mat_c = model.get_mat_c();
     let mat_d = model.get_mat_d();
 
-    DiscreteStateSpaceModel{mat_a:mat_a, mat_b:mat_b, mat_c:mat_c.clone(), mat_d:mat_d.clone(), sampling_dt: sampling_dt}
+    DiscreteStateSpaceModel {
+        mat_a: mat_a,
+        mat_b: mat_b,
+        mat_c: mat_c.clone(),
+        mat_d: mat_d.clone(),
+        sampling_dt: sampling_dt,
+    }
 }
 
 pub mod dc_motor {

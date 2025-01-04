@@ -18,7 +18,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let model = Rc::new(model::dc_motor::build(params, sampling_dt));
 
     let (step_response, step, _) = simulator::step(
-        <Rc<model::DiscreteStateSpaceModel> as Borrow<model::DiscreteStateSpaceModel>>::borrow(&model),
+        <Rc<model::DiscreteStateSpaceModel> as Borrow<model::DiscreteStateSpaceModel>>::borrow(
+            &model,
+        ),
         10.0,
     );
 
