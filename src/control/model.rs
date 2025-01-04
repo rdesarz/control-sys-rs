@@ -198,7 +198,7 @@ pub mod dc_motor {
     }
 }
 
-pub mod mpc {
+pub mod two_spring_damper_mass {
     extern crate nalgebra as na;
 
     use std::default::Default;
