@@ -15,10 +15,10 @@ extern crate nalgebra as na;
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sampling_dt = 0.05;
     let params = model::dc_motor::Parameters::default();
-    let model = Rc::new(model::dc_motor::Model::new(params, sampling_dt));
+    let model = Rc::new(model::dc_motor::build(params, sampling_dt));
 
     let (step_response, step, _) = simulator::step(
-        <Rc<model::dc_motor::Model> as Borrow<model::dc_motor::Model>>::borrow(&model),
+        <Rc<model::DiscreteStateSpaceModel> as Borrow<model::DiscreteStateSpaceModel>>::borrow(&model),
         10.0,
     );
 

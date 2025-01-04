@@ -1,31 +1,18 @@
 extern crate nalgebra as na;
 
 pub trait StateSpaceModel {
-    fn get_mat_a(&self) -> &na::DMatrix<f64> {
-        return &self.mat_a;
-    }
+    fn get_mat_a(&self) -> &na::DMatrix<f64>;
 
-    fn get_mat_b(&self) -> &na::DMatrix<f64> {
-        return &self.mat_b;
-    }
+    fn get_mat_b(&self) -> &na::DMatrix<f64>;
 
-    fn get_mat_c(&self) -> &na::DMatrix<f64> {
-        return &self.mat_c;
-    }
+    fn get_mat_c(&self) -> &na::DMatrix<f64>;
 
-    fn get_mat_d(&self) -> &na::DMatrix<f64> {
-        return &self.mat_d;
-    }
+    fn get_mat_d(&self) -> &na::DMatrix<f64>;
 }
 
 pub trait Discrete {
-    fn get_sampling_dt(&self) -> f64 {
-        return &self.sampling_dt;
-    }
+    fn get_sampling_dt(&self) -> f64;
 }
-
-// pub trait DiscreteStateSpaceModel: StateSpaceModel + Discrete {}
-// impl<T> DiscreteStateSpaceModel for T where T: StateSpaceModel + Discrete {}
 
 pub struct ContinuousStateSpaceModel {
     mat_a: na::DMatrix<f64>,
@@ -84,7 +71,23 @@ impl ContinuousStateSpaceModel {
     }
 }
 
-impl StateSpaceModel for ContinuousStateSpaceModel {}
+impl StateSpaceModel for ContinuousStateSpaceModel {
+    fn get_mat_a(&self) -> &na::DMatrix<f64> {
+        return &self.mat_a;
+    }
+
+    fn get_mat_b(&self) -> &na::DMatrix<f64> {
+        return &self.mat_b;
+    }
+
+    fn get_mat_c(&self) -> &na::DMatrix<f64> {
+        return &self.mat_c;
+    }
+
+    fn get_mat_d(&self) -> &na::DMatrix<f64> {
+        return &self.mat_d;
+    }
+}
 
 #[derive(Clone)]
 pub struct DiscreteStateSpaceModel {
@@ -95,9 +98,29 @@ pub struct DiscreteStateSpaceModel {
     sampling_dt: f64,
 }
 
-impl StateSpaceModel for DiscreteStateSpaceModel {}
+impl StateSpaceModel for DiscreteStateSpaceModel {
+    fn get_mat_a(&self) -> &na::DMatrix<f64> {
+        return &self.mat_a;
+    }
 
-impl Discrete for DiscreteStateSpaceModel {}
+    fn get_mat_b(&self) -> &na::DMatrix<f64> {
+        return &self.mat_b;
+    }
+
+    fn get_mat_c(&self) -> &na::DMatrix<f64> {
+        return &self.mat_c;
+    }
+
+    fn get_mat_d(&self) -> &na::DMatrix<f64> {
+        return &self.mat_d;
+    }
+}
+
+impl Discrete for DiscreteStateSpaceModel {
+    fn get_sampling_dt(&self) -> f64 {
+        return self.sampling_dt;
+    }
+}
 
 fn discretize_forward_euler(
     model: &ContinuousStateSpaceModel,
@@ -110,6 +133,8 @@ fn discretize_forward_euler(
     let mat_b = &mat_a * model.get_mat_b().scale(sampling_dt);
     let mat_c = model.get_mat_c();
     let mat_d = model.get_mat_d();
+
+    DiscreteStateSpaceModel{mat_a:mat_a, mat_b:mat_b, mat_c:mat_c.clone(), mat_d:mat_d.clone(), sampling_dt: sampling_dt}
 }
 
 pub mod dc_motor {

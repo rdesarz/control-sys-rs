@@ -2,7 +2,7 @@ pub mod mpc {
     use nalgebra as na;
     use std::rc::Rc;
 
-    use crate::control::model::DiscreteStateSpaceModel;
+    use crate::control::model::{DiscreteStateSpaceModel, StateSpaceModel};
 
     pub struct Controller {
         model: Rc<DiscreteStateSpaceModel>,
