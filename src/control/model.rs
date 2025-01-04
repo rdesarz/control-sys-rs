@@ -1,18 +1,31 @@
 extern crate nalgebra as na;
 
 pub trait StateSpaceModel {
-    fn get_mat_a(&self) -> &na::DMatrix<f64>;
-    fn get_mat_b(&self) -> &na::DMatrix<f64>;
-    fn get_mat_c(&self) -> &na::DMatrix<f64>;
-    fn get_mat_d(&self) -> &na::DMatrix<f64>;
+    fn get_mat_a(&self) -> &na::DMatrix<f64> {
+        return &self.mat_a;
+    }
+
+    fn get_mat_b(&self) -> &na::DMatrix<f64> {
+        return &self.mat_b;
+    }
+
+    fn get_mat_c(&self) -> &na::DMatrix<f64> {
+        return &self.mat_c;
+    }
+
+    fn get_mat_d(&self) -> &na::DMatrix<f64> {
+        return &self.mat_d;
+    }
 }
 
 pub trait Discrete {
-    fn get_sampling_dt(&self) -> f64;
+    fn get_sampling_dt(&self) -> f64 {
+        return &self.sampling_dt;
+    }
 }
 
-pub trait DiscreteStateSpaceModel: StateSpaceModel + Discrete {}
-impl<T> DiscreteStateSpaceModel for T where T: StateSpaceModel + Discrete {}
+// pub trait DiscreteStateSpaceModel: StateSpaceModel + Discrete {}
+// impl<T> DiscreteStateSpaceModel for T where T: StateSpaceModel + Discrete {}
 
 pub struct ContinuousStateSpaceModel {
     mat_a: na::DMatrix<f64>,
@@ -71,65 +84,37 @@ impl ContinuousStateSpaceModel {
     }
 }
 
-impl StateSpaceModel for ContinuousStateSpaceModel {
-    fn get_mat_a(&self) -> &na::DMatrix<f64> {
-        return &self.mat_a;
-    }
+impl StateSpaceModel for ContinuousStateSpaceModel {}
 
-    fn get_mat_b(&self) -> &na::DMatrix<f64> {
-        return &self.mat_b;
-    }
-
-    fn get_mat_c(&self) -> &na::DMatrix<f64> {
-        return &self.mat_c;
-    }
-
-    fn get_mat_d(&self) -> &na::DMatrix<f64> {
-        return &self.mat_d;
-    }
-}
-
-pub struct DiscreteStateSpaceModelStateSpaceModel {
+#[derive(Clone)]
+pub struct DiscreteStateSpaceModel {
     mat_a: na::DMatrix<f64>,
     mat_b: na::DMatrix<f64>,
     mat_c: na::DMatrix<f64>,
     mat_d: na::DMatrix<f64>,
+    sampling_dt: f64,
 }
 
-impl StateSpaceModel for DiscreteStateSpaceModel {
-    fn get_mat_a(&self) -> &na::DMatrix<f64> {
-        return &self.mat_a;
-    }
+impl StateSpaceModel for DiscreteStateSpaceModel {}
 
-    fn get_mat_b(&self) -> &na::DMatrix<f64> {
-        return &self.mat_b;
-    }
+impl Discrete for DiscreteStateSpaceModel {}
 
-    fn get_mat_c(&self) -> &na::DMatrix<f64> {
-        return &self.mat_c;
-    }
-
-    fn get_mat_d(&self) -> &na::DMatrix<f64> {
-        return &self.mat_d;
-    }
-}
-
-impl Discrete for DiscreteStateSpaceModel {
-    
-}
-
-fn discretize_forward_euler(model: &impl ContinuousStateSpaceModel, sampling_dt: f64) -> DiscreteStateSpaceModel {
+fn discretize_forward_euler(
+    model: &ContinuousStateSpaceModel,
+    sampling_dt: f64,
+) -> DiscreteStateSpaceModel {
     let mat_i = na::DMatrix::<f64>::identity(model.get_mat_a().nrows(), model.get_mat_a().nrows());
-    let mat_a = (mat_i - model.get_mat_a().scale(sampling_dt)).try_inverse().unwrap();
+    let mat_a = (mat_i - model.get_mat_a().scale(sampling_dt))
+        .try_inverse()
+        .unwrap();
     let mat_b = &mat_a * model.get_mat_b().scale(sampling_dt);
     let mat_c = model.get_mat_c();
     let mat_d = model.get_mat_d();
 }
 
 pub mod dc_motor {
-    build_
     extern crate nalgebra as na;
-    use crate::control::model::{Discrete, StateSpaceModel};
+    use crate::control::model::DiscreteStateSpaceModel;
     use std::default::Default;
 
     pub struct Parameters {
@@ -152,63 +137,28 @@ pub mod dc_motor {
         }
     }
 
-    #[derive(Clone)]
-    pub struct Model {
-        mat_a: na::DMatrix<f64>,
-        mat_b: na::DMatrix<f64>,
-        mat_c: na::DMatrix<f64>,
-        mat_d: na::DMatrix<f64>,
-        sampling_dt: f64,
-    }
+    pub fn build(params: Parameters, sampling_dt: f64) -> DiscreteStateSpaceModel {
+        // Define the continuous-time system matrices
+        let mat_ac = na::dmatrix![
+            -params.b / params.j, params.k / params.j;
+            -params.k / params.l, -params.r / params.l;
+        ];
+        let mat_bc = na::dmatrix![0.0; 1.0 / params.l];
+        let mat_cc = na::dmatrix![1.0, 0.0];
 
-    impl Model {
-        pub fn new(params: Parameters, sampling_dt: f64) -> Model {
-            // Define the continuous-time system matrices
-            let mat_ac = na::dmatrix![
-                -params.b / params.j, params.k / params.j;
-                -params.k / params.l, -params.r / params.l;
-            ];
-            let mat_bc = na::dmatrix![0.0; 1.0 / params.l];
-            let mat_cc = na::dmatrix![1.0, 0.0];
+        // Model discretization
+        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
+        let mat_a = (mat_i - mat_ac.scale(sampling_dt)).try_inverse().unwrap();
+        let mat_b = &mat_a * mat_bc.scale(sampling_dt);
+        let mat_c = mat_cc;
+        let mat_d = na::dmatrix![];
 
-            // Model discretization
-            let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
-            let mat_a = (mat_i - mat_ac.scale(sampling_dt)).try_inverse().unwrap();
-            let mat_b = &mat_a * mat_bc.scale(sampling_dt);
-            let mat_c = mat_cc;
-            let mat_d = na::dmatrix![];
-
-            Model {
-                mat_a: mat_a,
-                mat_b: mat_b,
-                mat_c: mat_c,
-                mat_d: mat_d,
-                sampling_dt: sampling_dt,
-            }
-        }
-    }
-
-    impl StateSpaceModel for Model {
-        fn get_mat_a(&self) -> &na::DMatrix<f64> {
-            &self.mat_a
-        }
-
-        fn get_mat_b(&self) -> &na::DMatrix<f64> {
-            &self.mat_b
-        }
-
-        fn get_mat_c(&self) -> &na::DMatrix<f64> {
-            &self.mat_c
-        }
-
-        fn get_mat_d(&self) -> &na::DMatrix<f64> {
-            &self.mat_d
-        }
-    }
-
-    impl Discrete for Model {
-        fn get_sampling_dt(&self) -> f64 {
-            self.sampling_dt
+        DiscreteStateSpaceModel {
+            mat_a: mat_a,
+            mat_b: mat_b,
+            mat_c: mat_c,
+            mat_d: mat_d,
+            sampling_dt: sampling_dt,
         }
     }
 }
@@ -218,7 +168,7 @@ pub mod mpc {
 
     use std::default::Default;
 
-    use crate::control::model::{Discrete, StateSpaceModel};
+    use crate::control::model::DiscreteStateSpaceModel;
 
     pub struct Parameters {
         m1: f64,
@@ -242,65 +192,30 @@ pub mod mpc {
         }
     }
 
-    #[derive(Clone)]
-    pub struct Model {
-        mat_a: na::DMatrix<f64>,
-        mat_b: na::DMatrix<f64>,
-        mat_c: na::DMatrix<f64>,
-        mat_d: na::DMatrix<f64>,
-        sampling_dt: f64,
-    }
+    pub fn build(params: Parameters, sampling_dt: f64) -> DiscreteStateSpaceModel {
+        // Define the continuous-time system matrices
+        let mat_ac = na::dmatrix![
+            0.0, 1.0, 0.0, 0.0;
+            -(params.k1 + params.k2) / params.m1, -(params.d1 + params.d2) / params.m1, params.k2 / params.m1, params.d2 / params.m1;
+            0.0, 0.0, 0.0, 1.0;
+            params.k2 / params.m2, params.d2 / params.m2, -params.k2 / params.m2, -params.d2 / params.m2
+        ];
+        let mat_bc = na::dmatrix![0.0; 0.0; 0.0; 1.0 / params.m2];
+        let mat_cc = na::dmatrix![1.0, 0.0, 0.0, 0.0];
 
-    impl Model {
-        pub fn new(params: Parameters, sampling_dt: f64) -> Model {
-            // Define the continuous-time system matrices
-            let mat_ac = na::dmatrix![
-                0.0, 1.0, 0.0, 0.0;
-                -(params.k1 + params.k2) / params.m1, -(params.d1 + params.d2) / params.m1, params.k2 / params.m1, params.d2 / params.m1;
-                0.0, 0.0, 0.0, 1.0;
-                params.k2 / params.m2, params.d2 / params.m2, -params.k2 / params.m2, -params.d2 / params.m2
-            ];
-            let mat_bc = na::dmatrix![0.0; 0.0; 0.0; 1.0 / params.m2];
-            let mat_cc = na::dmatrix![1.0, 0.0, 0.0, 0.0];
+        // Model discretization
+        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
+        let mat_a = (mat_i - mat_ac.scale(sampling_dt)).try_inverse().unwrap();
+        let mat_b = &mat_a * mat_bc.scale(sampling_dt);
+        let mat_c = mat_cc;
+        let mat_d = na::dmatrix![0.0f64];
 
-            // Model discretization
-            let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
-            let mat_a = (mat_i - mat_ac.scale(sampling_dt)).try_inverse().unwrap();
-            let mat_b = &mat_a * mat_bc.scale(sampling_dt);
-            let mat_c = mat_cc;
-            let mat_d = na::dmatrix![0.0f64];
-
-            Model {
-                mat_a: mat_a,
-                mat_b: mat_b,
-                mat_c: mat_c,
-                mat_d: mat_d,
-                sampling_dt: sampling_dt,
-            }
-        }
-    }
-
-    impl StateSpaceModel for Model {
-        fn get_mat_a(&self) -> &na::DMatrix<f64> {
-            &self.mat_a
-        }
-
-        fn get_mat_b(&self) -> &na::DMatrix<f64> {
-            &self.mat_b
-        }
-
-        fn get_mat_c(&self) -> &na::DMatrix<f64> {
-            &self.mat_c
-        }
-
-        fn get_mat_d(&self) -> &na::DMatrix<f64> {
-            &self.mat_d
-        }
-    }
-
-    impl Discrete for Model {
-        fn get_sampling_dt(&self) -> f64 {
-            self.sampling_dt
+        DiscreteStateSpaceModel {
+            mat_a: mat_a,
+            mat_b: mat_b,
+            mat_c: mat_c,
+            mat_d: mat_d,
+            sampling_dt: sampling_dt,
         }
     }
 }

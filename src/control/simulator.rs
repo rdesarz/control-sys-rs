@@ -1,6 +1,6 @@
 use nalgebra as na;
 
-use crate::control::model::{StateSpaceModel, Discrete};
+use crate::control::model::{Discrete, StateSpaceModel};
 
 fn system_simulate(
     model: &(impl StateSpaceModel + Discrete),

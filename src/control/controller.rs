@@ -5,7 +5,7 @@ pub mod mpc {
     use crate::control::model::DiscreteStateSpaceModel;
 
     pub struct Controller {
-        model: Rc<dyn DiscreteStateSpaceModel>,
+        model: Rc<DiscreteStateSpaceModel>,
         f: usize,
         mat_o: na::DMatrix<f64>,
         gain_matrix: na::DMatrix<f64>,
@@ -137,7 +137,7 @@ pub mod mpc {
         }
 
         pub fn new(
-            model: Rc<dyn DiscreteStateSpaceModel>,
+            model: Rc<DiscreteStateSpaceModel>,
             f: usize,
             v: usize,
             q0: f64,
