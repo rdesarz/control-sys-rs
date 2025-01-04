@@ -116,30 +116,46 @@ impl StateSpaceModel for DiscreteStateSpaceModel {
     }
 }
 
-impl Discrete for DiscreteStateSpaceModel {
-    fn get_sampling_dt(&self) -> f64 {
-        return self.sampling_dt;
+impl DiscreteStateSpaceModel {
+    fn from_continuous_matrix_forward_euler(
+        mat_ac: &na::DMatrix<f64>,
+        mat_bc: &na::DMatrix<f64>,
+        mat_cc: &na::DMatrix<f64>,
+        mat_dc: &na::DMatrix<f64>,
+        sampling_dt: f64,
+    ) -> DiscreteStateSpaceModel {
+        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
+        let mat_a = (mat_i - mat_ac.scale(sampling_dt)).try_inverse().unwrap();
+        let mat_b = &mat_a * mat_bc.scale(sampling_dt);
+        let mat_c = mat_cc.clone();
+        let mat_d = mat_dc.clone();
+
+        DiscreteStateSpaceModel {
+            mat_a: mat_a,
+            mat_b: mat_b,
+            mat_c: mat_c,
+            mat_d: mat_d,
+            sampling_dt: sampling_dt,
+        }
+    }
+
+    fn from_continuous_ss_forward_euler(
+        model: &ContinuousStateSpaceModel,
+        sampling_dt: f64,
+    ) -> DiscreteStateSpaceModel {
+        Self::from_continuous_matrix_forward_euler(
+            model.get_mat_a(),
+            model.get_mat_b(),
+            model.get_mat_c(),
+            model.get_mat_d(),
+            sampling_dt
+        )
     }
 }
 
-fn discretize_forward_euler(
-    model: &ContinuousStateSpaceModel,
-    sampling_dt: f64,
-) -> DiscreteStateSpaceModel {
-    let mat_i = na::DMatrix::<f64>::identity(model.get_mat_a().nrows(), model.get_mat_a().nrows());
-    let mat_a = (mat_i - model.get_mat_a().scale(sampling_dt))
-        .try_inverse()
-        .unwrap();
-    let mat_b = &mat_a * model.get_mat_b().scale(sampling_dt);
-    let mat_c = model.get_mat_c();
-    let mat_d = model.get_mat_d();
-
-    DiscreteStateSpaceModel {
-        mat_a: mat_a,
-        mat_b: mat_b,
-        mat_c: mat_c.clone(),
-        mat_d: mat_d.clone(),
-        sampling_dt: sampling_dt,
+impl Discrete for DiscreteStateSpaceModel {
+    fn get_sampling_dt(&self) -> f64 {
+        return self.sampling_dt;
     }
 }
 
