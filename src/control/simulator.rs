@@ -2,7 +2,7 @@ use nalgebra as na;
 
 use crate::control::model::{Discrete, StateSpaceModel};
 
-fn system_simulate(
+fn simulate_ss_response(
     model: &(impl StateSpaceModel + Discrete),
     mat_u: &na::DMatrix<f64>,
     x0: &na::DVector<f64>,
@@ -34,7 +34,7 @@ fn system_simulate(
     (mat_y, mat_x)
 }
 
-pub fn compute_system_response(
+pub fn compute_ss_response(
     model: &(impl StateSpaceModel + Discrete),
     input: &na::DMatrix<f64>,
     initial_state: &na::DVector<f64>,
@@ -47,8 +47,24 @@ pub fn compute_system_response(
     system_response
 }
 
-pub fn step(
+pub fn step_ss(
     model: &(impl StateSpaceModel + Discrete),
+    duration: f64,
+) -> (na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>) {
+    // Initial state is zero for a step response
+    let initial_state = na::DVector::<f64>::zeros(model.get_mat_a().nrows());
+
+    // Generate step for given duration
+    let n_samples = (duration / model.get_sampling_dt()).floor() as usize;
+    let input = na::DMatrix::from_element(1, n_samples, 1.0f64);
+
+    let (response, states) = system_simulate(model, &input, &initial_state);
+
+    (response, input, states)
+}
+
+pub fn step_tf(
+    model: &TransferFunction,
     duration: f64,
 ) -> (na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>) {
     // Initial state is zero for a step response
