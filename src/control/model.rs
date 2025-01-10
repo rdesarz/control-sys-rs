@@ -264,6 +264,13 @@ impl TransferFunction {
     }
 }
 
+use num_complex::Complex;
+
+pub fn pole<T: StateSpaceModel>(ss: &T) -> Complex
+{
+    
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

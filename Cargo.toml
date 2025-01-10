@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 plotters = "0.3.3"
 nalgebra = "0.33.2"
+num = "0.4.3"
