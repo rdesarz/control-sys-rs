@@ -40,14 +40,14 @@ pub fn compute_ss_response(
     initial_state: &na::DVector<f64>,
 ) -> Vec<f64> {
     // simulate the discrete-time system
-    let (y_test, _x_test) = system_simulate(model, &input, &initial_state);
+    let (y_test, _x_test) = simulate_ss_response(model, &input, &initial_state);
 
     let system_response: Vec<f64> = y_test.row(0).iter().map(|&val| val as f64).collect();
 
     system_response
 }
 
-pub fn step_ss(
+pub fn step(
     model: &(impl StateSpaceModel + Discrete),
     duration: f64,
 ) -> (na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>) {
@@ -58,23 +58,7 @@ pub fn step_ss(
     let n_samples = (duration / model.get_sampling_dt()).floor() as usize;
     let input = na::DMatrix::from_element(1, n_samples, 1.0f64);
 
-    let (response, states) = system_simulate(model, &input, &initial_state);
-
-    (response, input, states)
-}
-
-pub fn step_tf(
-    model: &TransferFunction,
-    duration: f64,
-) -> (na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>) {
-    // Initial state is zero for a step response
-    let initial_state = na::DVector::<f64>::zeros(model.get_mat_a().nrows());
-
-    // Generate step for given duration
-    let n_samples = (duration / model.get_sampling_dt()).floor() as usize;
-    let input = na::DMatrix::from_element(1, n_samples, 1.0f64);
-
-    let (response, states) = system_simulate(model, &input, &initial_state);
+    let (response, states) = simulate_ss_response(model, &input, &initial_state);
 
     (response, input, states)
 }
