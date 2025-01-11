@@ -1,6 +1,6 @@
 use control_sys_rs::control::controller;
 use control_sys_rs::control::model;
-use control_sys_rs::control::model::StateSpaceModel;
+use control_sys_rs::control::model::{StateSpaceModel, Pole};
 use control_sys_rs::control::simulator;
 use control_sys_rs::control::trajectory;
 
@@ -16,6 +16,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let sampling_dt = 0.05;
     let params = model::dc_motor::Parameters::default();
     let model = Rc::new(model::dc_motor::build(params, sampling_dt));
+
+    model.poles();
 
     let (step_response, step, _) = simulator::step(
         <Rc<model::DiscreteStateSpaceModel> as Borrow<model::DiscreteStateSpaceModel>>::borrow(

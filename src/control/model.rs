@@ -16,7 +16,7 @@ pub trait Discrete {
 
 pub trait Pole
 {
-    fn pole(&self) -> Option<Vec<nalgebra::Complex<f64>>>;
+    fn poles(&self) -> Option<Vec<f64>>;
 }
 
 pub struct ContinuousStateSpaceModel {
@@ -94,15 +94,18 @@ impl StateSpaceModel for ContinuousStateSpaceModel {
     }
 }
 
-impl Pole for ContinuousStateSpaceModel {
-    fn pole(&self) -> Option<Vec<nalgebra::Complex<f64>>>
-    {
-        match self.mat_a.eigenvalues() {
-            None => return None,
-            Some(poles) => return None,
-        }    
-    }
-}
+// impl Pole for ContinuousStateSpaceModel {
+//     fn pole(&self) -> Option<Vec<nalgebra::Complex<f64>>>
+//     {
+//         match self.mat_a.eigenvalues() {
+//             None => return None,
+//             Some(poles) => 
+//             {
+//                 println!(poles);
+//             },
+//         }    
+//     }
+// }
 
 #[derive(Clone)]
 pub struct DiscreteStateSpaceModel {
@@ -167,6 +170,30 @@ impl DiscreteStateSpaceModel {
         )
     }
 }
+
+// impl Pole for DiscreteStateSpaceModel {
+//     fn poles(&self) -> Option<Vec<nalgebra::Complex<f64>>>
+//     {
+//         match self.mat_a.eigenvalues() {
+//             None => return None,
+//             Some(poles) => 
+//             {
+//                 println!("{:?}", poles);
+//                 return Some(poles.column_iter().map(|col| col[0]).collect());
+//             },
+//         }    
+//     }
+// }
+
+impl Pole for DiscreteStateSpaceModel {
+    fn poles(&self) -> Option<Vec<f64>> {
+        self.mat_a.eigenvalues().map(|poles| {
+            println!("{:?}", poles);
+            poles.iter().copied().collect()
+        })
+    }
+}
+
 
 impl Discrete for DiscreteStateSpaceModel {
     fn get_sampling_dt(&self) -> f64 {
