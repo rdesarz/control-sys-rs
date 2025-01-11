@@ -14,6 +14,11 @@ pub trait Discrete {
     fn get_sampling_dt(&self) -> f64;
 }
 
+pub trait Pole
+{
+    fn pole(&self) -> nalgebra::Complex<f64>;
+}
+
 pub struct ContinuousStateSpaceModel {
     mat_a: na::DMatrix<f64>,
     mat_b: na::DMatrix<f64>,
@@ -264,12 +269,7 @@ impl TransferFunction {
     }
 }
 
-use num_complex::Complex;
 
-pub fn pole<T: StateSpaceModel>(ss: &T) -> Complex
-{
-    
-}
 
 #[cfg(test)]
 mod tests {
