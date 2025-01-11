@@ -19,6 +19,6 @@ docker compose up -d
 Then run the code inside the container:
 
 ```
-cargo run
 docker exec -it control-sys-rs bash
+cargo run
 ```
