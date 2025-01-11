@@ -16,7 +16,7 @@ pub trait Discrete {
 
 pub trait Pole
 {
-    fn pole(&self) -> nalgebra::Complex<f64>;
+    fn pole(&self) -> Option<Vec<nalgebra::Complex<f64>>>;
 }
 
 pub struct ContinuousStateSpaceModel {
@@ -91,6 +91,16 @@ impl StateSpaceModel for ContinuousStateSpaceModel {
 
     fn get_mat_d(&self) -> &na::DMatrix<f64> {
         return &self.mat_d;
+    }
+}
+
+impl Pole for ContinuousStateSpaceModel {
+    fn pole(&self) -> Option<Vec<nalgebra::Complex<f64>>>
+    {
+        match self.mat_a.eigenvalues() {
+            None => return None,
+            Some(poles) => return None,
+        }    
     }
 }
 
