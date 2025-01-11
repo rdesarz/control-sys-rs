@@ -1,4 +1,4 @@
-# Control-sys.rs
+# control-sys.rs
 
 A control system library written in Rust. This is a work in progress. The goal is to provide a library for control system analysis and synthesis as well as implementation of control algorithms.
 
