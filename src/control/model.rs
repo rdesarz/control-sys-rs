@@ -14,8 +14,7 @@ pub trait Discrete {
     fn get_sampling_dt(&self) -> f64;
 }
 
-pub trait Pole
-{
+pub trait Pole {
     fn poles(&self) -> Option<Vec<f64>>;
 }
 
@@ -99,11 +98,11 @@ impl StateSpaceModel for ContinuousStateSpaceModel {
 //     {
 //         match self.mat_a.eigenvalues() {
 //             None => return None,
-//             Some(poles) => 
+//             Some(poles) =>
 //             {
 //                 println!(poles);
 //             },
-//         }    
+//         }
 //     }
 // }
 
@@ -135,6 +134,22 @@ impl StateSpaceModel for DiscreteStateSpaceModel {
 }
 
 impl DiscreteStateSpaceModel {
+    fn new(
+        mat_a: &na::DMatrix<f64>,
+        mat_b: &na::DMatrix<f64>,
+        mat_c: &na::DMatrix<f64>,
+        mat_d: &na::DMatrix<f64>,
+        sampling_dt: f64,
+    ) -> DiscreteStateSpaceModel {
+        DiscreteStateSpaceModel {
+            mat_a: mat_a.clone(),
+            mat_b: mat_b.clone(),
+            mat_c: mat_c.clone(),
+            mat_d: mat_d.clone(),
+            sampling_dt: sampling_dt,
+        }
+    }
+
     fn from_continuous_matrix_forward_euler(
         mat_ac: &na::DMatrix<f64>,
         mat_bc: &na::DMatrix<f64>,
@@ -166,24 +181,10 @@ impl DiscreteStateSpaceModel {
             model.get_mat_b(),
             model.get_mat_c(),
             model.get_mat_d(),
-            sampling_dt
+            sampling_dt,
         )
     }
 }
-
-// impl Pole for DiscreteStateSpaceModel {
-//     fn poles(&self) -> Option<Vec<nalgebra::Complex<f64>>>
-//     {
-//         match self.mat_a.eigenvalues() {
-//             None => return None,
-//             Some(poles) => 
-//             {
-//                 println!("{:?}", poles);
-//                 return Some(poles.column_iter().map(|col| col[0]).collect());
-//             },
-//         }    
-//     }
-// }
 
 impl Pole for DiscreteStateSpaceModel {
     fn poles(&self) -> Option<Vec<f64>> {
@@ -193,7 +194,6 @@ impl Pole for DiscreteStateSpaceModel {
         })
     }
 }
-
 
 impl Discrete for DiscreteStateSpaceModel {
     fn get_sampling_dt(&self) -> f64 {
@@ -236,7 +236,13 @@ pub mod dc_motor {
         let mat_cc = na::dmatrix![1.0, 0.0];
 
         // Model discretization
-        DiscreteStateSpaceModel::from_continuous_matrix_forward_euler(&mat_ac, &mat_bc, &mat_cc, &na::dmatrix![0.0], sampling_dt)
+        DiscreteStateSpaceModel::from_continuous_matrix_forward_euler(
+            &mat_ac,
+            &mat_bc,
+            &mat_cc,
+            &na::dmatrix![0.0],
+            sampling_dt,
+        )
     }
 }
 
@@ -282,7 +288,13 @@ pub mod two_spring_damper_mass {
         let mat_dc = na::dmatrix![0.0];
 
         // Model discretization
-        DiscreteStateSpaceModel::from_continuous_matrix_forward_euler(&mat_ac, &mat_bc, &mat_cc, &mat_dc, sampling_dt)
+        DiscreteStateSpaceModel::from_continuous_matrix_forward_euler(
+            &mat_ac,
+            &mat_bc,
+            &mat_cc,
+            &mat_dc,
+            sampling_dt,
+        )
     }
 }
 
@@ -305,8 +317,6 @@ impl TransferFunction {
         }
     }
 }
-
-
 
 #[cfg(test)]
 mod tests {
@@ -343,5 +353,18 @@ mod tests {
         // Check mat D
         assert_eq!(ss_model.get_mat_d().shape(), (1, 1));
         assert_eq!(ss_model.get_mat_d()[(0, 0)], 8.0f64);
+    }
+
+    #[test]
+    fn test_compute_eigenvalues_complex() {
+        let ss_model = DiscreteStateSpaceModel::new(
+            &nalgebra::dmatrix![0.0, -1.0; 1.0, 0.0],
+            &nalgebra::dmatrix![],
+            &nalgebra::dmatrix![],
+            &nalgebra::dmatrix![],
+            0.05,
+        );
+
+        ss_model.poles();
     }
 }

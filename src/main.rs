@@ -1,6 +1,6 @@
 use control_sys_rs::control::controller;
 use control_sys_rs::control::model;
-use control_sys_rs::control::model::{StateSpaceModel, Pole};
+use control_sys_rs::control::model::{Pole, StateSpaceModel};
 use control_sys_rs::control::simulator;
 use control_sys_rs::control::trajectory;
 
