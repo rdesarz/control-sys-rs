@@ -87,7 +87,7 @@ pub fn compute_observability_matrix(
     mat_c: &na::DMatrix<f64>,
 ) -> Result<na::DMatrix<f64>, &'static str> {
     if !mat_a.is_square() {
-        return Err("Error when computing controllability matrix. The A matrix is not square.");
+        return Err("Error when computing observability matrix. The A matrix is not square.");
     }
 
     let n = mat_a.nrows(); // Number of states
@@ -95,7 +95,7 @@ pub fn compute_observability_matrix(
 
     // Generate [C; CA; CA^2;...]
     for i in 1..n {
-        let column_block = mat_c * mat_a.pow(i as u32); 
+        let column_block = mat_c * mat_a.pow(i as u32);
         observability_mat = na::stack![observability_mat; column_block];
     }
 
@@ -133,7 +133,7 @@ mod tests {
     use crate::control::model::DiscreteStateSpaceModel;
 
     #[test]
-    fn test_compute_controllability_matrix_nominal() {
+    fn test_compute_controllability_matrix_2x2() {
         let mat_a = nalgebra::dmatrix![1.0, -2.0;
                                        2.0, 1.0];
         let mat_b = nalgebra::dmatrix![1.0; 
@@ -144,6 +144,17 @@ mod tests {
         assert_eq!(result.nrows(), mat_b.ncols() * mat_a.nrows());
         assert_eq!(result.ncols(), mat_a.ncols());
         assert_eq!(result, na::stack![mat_b, mat_a * &mat_b])
+    }
+
+    #[test]
+    fn test_compute_controllability_matrix_mat_a_not_square() {
+        let mat_a = nalgebra::dmatrix![1.0, -2.0];
+        let mat_b = nalgebra::dmatrix![1.0; 
+                                       2.0];
+
+        let result = compute_controllability_matrix(&mat_a, &mat_b);
+
+        assert_eq!(result, Err("Error when computing controllability matrix. The A matrix is not square."));
     }
 
     #[test]
@@ -183,7 +194,7 @@ mod tests {
     }
 
     #[test]
-    fn test_compute_observability_matrix_nominal() {
+    fn test_compute_observability_matrix_2x2() {
         let mat_a = nalgebra::dmatrix![1.0, -2.0;
                                        2.0, 1.0];
         let mat_c = nalgebra::dmatrix![1.0, 2.0];
@@ -193,5 +204,57 @@ mod tests {
         assert_eq!(result.nrows(), mat_a.ncols());
         assert_eq!(result.ncols(), mat_c.ncols());
         assert_eq!(result, na::stack![&mat_c; &mat_c * mat_a]);
+    }
+
+    #[test]
+    fn test_compute_observability_matrix_mat_a_not_square() {
+        let mat_a = nalgebra::dmatrix![1.0, -2.0];
+        let mat_b = nalgebra::dmatrix![1.0; 
+                                       2.0];
+
+        let result = compute_observability_matrix(&mat_a, &mat_b);
+
+        assert_eq!(result, Err("Error when computing observability matrix. The A matrix is not square."));
+    }
+
+    #[test]
+    fn test_is_observable_2x2_observable_system() {
+        let ss_model = DiscreteStateSpaceModel::from_matrices(
+            &nalgebra::dmatrix![1.0, -2.0; 
+                            2.0, 1.0],
+            &nalgebra::dmatrix![],
+            &nalgebra::dmatrix![1.0, 2.0],
+            &nalgebra::dmatrix![],
+            0.05,
+        );
+
+        let (result, _) = is_ss_observable(&ss_model);
+
+        assert!(result);
+    }
+
+    #[test]
+    fn test_observability_3x3_not_observable() {
+        let ss_model = DiscreteStateSpaceModel::from_matrices(
+            &na::dmatrix![
+            1.0, 0.0, 0.0;
+            0.0, 1.0, 0.0;
+            0.0, 0.0, 0.0],
+            &na::dmatrix![],
+            &nalgebra::dmatrix![1.0, 0.0, 0.0],
+            &nalgebra::dmatrix![],
+            0.05,
+        );
+
+        let (observable, obs_mat) = is_ss_observable(&ss_model);
+
+        assert!(!observable);
+        assert_eq!(
+            obs_mat,
+            na::dmatrix![
+            1.0, 0.0, 0.0;
+            1.0, 0.0, 0.0;
+            1.0, 0.0, 0.0]
+        );
     }
 }
