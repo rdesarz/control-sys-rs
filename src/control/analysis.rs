@@ -20,6 +20,22 @@ use crate::control::model::StateSpaceModel;
 /// # Panics
 ///
 /// This function does not panic.
+///
+/// # Examples
+///
+/// ```
+/// use control_sys_rs::control::analysis;
+///
+/// let mat_a = nalgebra::dmatrix![1.0, -2.0;
+///                                2.0, 1.0];
+/// let mat_b = nalgebra::dmatrix![1.0;
+///                                2.0];
+/// match analysis::compute_controllability_matrix(&mat_a, &mat_b) {
+///     Ok(result) => { println!("Controllability matrix is {}", result); },
+///     Err(msg) => { println!("{}", msg)}
+/// }
+/// ```
+///
 pub fn compute_controllability_matrix(
     mat_a: &na::DMatrix<f64>,
     mat_b: &na::DMatrix<f64>,
@@ -53,12 +69,31 @@ pub fn compute_controllability_matrix(
 /// # Panics
 ///
 /// This function will panic if the computation of the controllability matrix fails.
+///
+/// # Examples
+///
+/// ```
+/// use control_sys_rs::control::analysis;
+/// use control_sys_rs::control::model;
+///
+/// let ss_model = model::DiscreteStateSpaceModel::from_matrices(
+/// &nalgebra::dmatrix![1.0, -2.0;
+///                     2.0, 1.0],
+/// &nalgebra::dmatrix![1.0;
+///                     2.0],
+/// &nalgebra::dmatrix![],
+/// &nalgebra::dmatrix![],
+/// 0.05,
+/// );
+/// let (is_controllable, controllability_matrix) = analysis::is_ss_controllable(&ss_model);
+/// ```
 pub fn is_ss_controllable<T: StateSpaceModel>(model: &T) -> (bool, na::DMatrix<f64>) {
     let mat_a = model.mat_a();
     let mat_b = model.mat_b();
 
     // We know that mat_a is square so we simply unwrap() the result
-    let mat_contr = compute_controllability_matrix(&mat_a, &mat_b).unwrap();
+    let mat_contr = compute_controllability_matrix(&mat_a, &mat_b)
+        .expect("State matrix of the model is not square");
 
     // Since the input is a state space model, we expect A to be square
     return (mat_contr.rank(1e-3) == mat_a.nrows(), mat_contr);
@@ -82,6 +117,21 @@ pub fn is_ss_controllable<T: StateSpaceModel>(model: &T) -> (bool, na::DMatrix<f
 /// # Panics
 ///
 /// This function does not panic.
+///
+/// # Examples
+///
+/// ```
+/// use control_sys_rs::control::analysis;
+///
+/// let mat_a = nalgebra::dmatrix![1.0, -2.0;
+///                                2.0, 1.0];
+/// let mat_c = nalgebra::dmatrix![1.0, 2.0];
+///
+/// match analysis::compute_observability_matrix(&mat_a, &mat_c) {
+///     Ok(result) => { println!("Observability matrix is {}", result); },
+///     Err(msg) => { println!("{}", msg)}
+/// }
+/// ```
 pub fn compute_observability_matrix(
     mat_a: &na::DMatrix<f64>,
     mat_c: &na::DMatrix<f64>,
@@ -115,12 +165,30 @@ pub fn compute_observability_matrix(
 /// # Panics
 ///
 /// This function will panic if the computation of the controllability matrix fails.
+/// 
+/// # Examples
+///
+/// ```
+/// use control_sys_rs::control::analysis;
+/// use control_sys_rs::control::model;
+///
+/// let ss_model = model::DiscreteStateSpaceModel::from_matrices(
+/// &nalgebra::dmatrix![1.0, -2.0;
+///                     2.0, 1.0],
+/// &nalgebra::dmatrix![],
+/// &nalgebra::dmatrix![1.0, 2.0],
+/// &nalgebra::dmatrix![],
+/// 0.05,
+/// );
+/// let (is_observable, observability_matrix) = analysis::is_ss_observable(&ss_model);
+/// ```
 pub fn is_ss_observable<T: StateSpaceModel>(model: &T) -> (bool, na::DMatrix<f64>) {
     let mat_a = model.mat_a();
     let mat_c = model.mat_c();
 
-    // We know that mat_a is square so we simply unwrap() the result
-    let mat_obs = compute_observability_matrix(&mat_a, &mat_c).unwrap();
+    // StateSpaceModel performs check of the matrices so computing observability matrix should not fail
+    let mat_obs = compute_observability_matrix(&mat_a, &mat_c)
+        .expect("State matrix of the model is not square");
 
     // Since the input is a state space model, we expect A to be square
     return (mat_obs.rank(1e-3) == mat_a.nrows(), mat_obs);
@@ -154,7 +222,10 @@ mod tests {
 
         let result = compute_controllability_matrix(&mat_a, &mat_b);
 
-        assert_eq!(result, Err("Error when computing controllability matrix. The A matrix is not square."));
+        assert_eq!(
+            result,
+            Err("Error when computing controllability matrix. The A matrix is not square.")
+        );
     }
 
     #[test]
@@ -214,7 +285,10 @@ mod tests {
 
         let result = compute_observability_matrix(&mat_a, &mat_b);
 
-        assert_eq!(result, Err("Error when computing observability matrix. The A matrix is not square."));
+        assert_eq!(
+            result,
+            Err("Error when computing observability matrix. The A matrix is not square.")
+        );
     }
 
     #[test]
