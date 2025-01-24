@@ -102,6 +102,30 @@ pub fn compute_observability_matrix(
     Ok(observability_mat)
 }
 
+/// Checks if a given state-space model is observable.
+///
+/// # Arguments
+///
+/// * `model` - A reference to a state-space model that implements the `StateSpaceModel` trait.
+///
+/// # Returns
+///
+/// * A tuple with a `bool` which is `true` if the system is controllable, `false` otherwise and the observability matrix.
+///
+/// # Panics
+///
+/// This function will panic if the computation of the controllability matrix fails.
+pub fn is_ss_observable<T: StateSpaceModel>(model: &T) -> (bool, na::DMatrix<f64>) {
+    let mat_a = model.mat_a();
+    let mat_c = model.mat_c();
+
+    // We know that mat_a is square so we simply unwrap() the result
+    let mat_obs = compute_observability_matrix(&mat_a, &mat_c).unwrap();
+
+    // Since the input is a state space model, we expect A to be square
+    return (mat_obs.rank(1e-3) == mat_a.nrows(), mat_obs);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
