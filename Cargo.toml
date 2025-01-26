@@ -1,11 +1,14 @@
 [package]
 name = "control_sys"
 version = "0.1.0"
-edition = "2021"
-
+authors = ["Romain Desarzens <rdsrz@pm.me>"]
 description = "A Control System library implemented in Rust to design and analyze control systems."
-authors = ["Romain Desarzens"]
+repository = "https://github.com/rdesarz/control_sys_rs"
 readme = "README.md"
+categories = ["science", "mathematics", "wasm"]
+keywords = ["control-theory", "control-systems", "state-space-model"]
+license = "MIT"
+edition = "2021"
 
 include = [
     "/README.md",
