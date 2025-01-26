@@ -1,8 +1,6 @@
 use nalgebra as na;
 
-use crate::control::model::{
-    ContinuousStateSpaceModel, Discrete, DiscreteStateSpaceModel, StateSpaceModel,
-};
+use crate::model::{ContinuousStateSpaceModel, Discrete, DiscreteStateSpaceModel, StateSpaceModel};
 
 /// Generates the step response of a discrete state-space model for a given duration.
 ///

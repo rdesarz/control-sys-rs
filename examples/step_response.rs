@@ -1,6 +1,6 @@
-use control_sys_rs::control::model;
-use control_sys_rs::control::model::Pole;
-use control_sys_rs::control::simulator;
+use control_sys_rs::model;
+use control_sys_rs::model::Pole;
+use control_sys_rs::simulator;
 
 use plotters::prelude::*;
 
@@ -15,7 +15,7 @@ pub mod two_spring_damper_mass {
 
     use std::default::Default;
 
-    use control_sys_rs::control::model::DiscreteStateSpaceModel;
+    use control_sys_rs::model::DiscreteStateSpaceModel;
 
     pub struct Parameters {
         m1: f64,
@@ -63,7 +63,7 @@ pub mod two_spring_damper_mass {
 }
 
 pub mod dc_motor {
-    use control_sys_rs::control::model::DiscreteStateSpaceModel;
+    use control_sys_rs::model::DiscreteStateSpaceModel;
     use std::default::Default;
 
     pub struct Parameters {

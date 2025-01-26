@@ -1,6 +1,6 @@
 extern crate nalgebra as na;
 
-use crate::control::model::StateSpaceModel;
+use crate::model::StateSpaceModel;
 
 /// Computes the controllability matrix for a given state-space representation.
 ///
@@ -24,7 +24,7 @@ use crate::control::model::StateSpaceModel;
 /// # Examples
 ///
 /// ```
-/// use control_sys_rs::control::analysis;
+/// use control_sys_rs::analysis;
 ///
 /// let mat_a = nalgebra::dmatrix![1.0, -2.0;
 ///                                2.0, 1.0];
@@ -73,8 +73,8 @@ pub fn compute_controllability_matrix(
 /// # Examples
 ///
 /// ```
-/// use control_sys_rs::control::analysis;
-/// use control_sys_rs::control::model;
+/// use control_sys_rs::analysis;
+/// use control_sys_rs::model;
 ///
 /// let ss_model = model::DiscreteStateSpaceModel::from_matrices(
 /// &nalgebra::dmatrix![1.0, -2.0;
@@ -121,7 +121,7 @@ pub fn is_ss_controllable<T: StateSpaceModel>(model: &T) -> (bool, na::DMatrix<f
 /// # Examples
 ///
 /// ```
-/// use control_sys_rs::control::analysis;
+/// use control_sys_rs::analysis;
 ///
 /// let mat_a = nalgebra::dmatrix![1.0, -2.0;
 ///                                2.0, 1.0];
@@ -169,8 +169,8 @@ pub fn compute_observability_matrix(
 /// # Examples
 ///
 /// ```
-/// use control_sys_rs::control::analysis;
-/// use control_sys_rs::control::model;
+/// use control_sys_rs::analysis;
+/// use control_sys_rs::model;
 ///
 /// let ss_model = model::DiscreteStateSpaceModel::from_matrices(
 /// &nalgebra::dmatrix![1.0, -2.0;
@@ -198,7 +198,7 @@ pub fn is_ss_observable<T: StateSpaceModel>(model: &T) -> (bool, na::DMatrix<f64
 mod tests {
     use super::*;
 
-    use crate::control::model::DiscreteStateSpaceModel;
+    use crate::model::DiscreteStateSpaceModel;
 
     #[test]
     fn test_compute_controllability_matrix_2x2() {

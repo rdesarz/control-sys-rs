@@ -4,7 +4,7 @@ extern crate nalgebra as na;
 ///
 /// This trait provides methods to access the state-space matrices A, B, C, and D,
 /// which are fundamental components of the state-space representation of a system.
-/// 
+///
 pub trait StateSpaceModel {
     /// Returns a reference to the state matrix A.
     fn mat_a(&self) -> &na::DMatrix<f64>;
@@ -27,7 +27,7 @@ pub trait StateSpaceModel {
 /// # Examples
 ///
 /// ```
-/// use control_sys_rs::control::model::Discrete;
+/// use control_sys_rs::model::Discrete;
 ///
 /// struct MyDiscreteSystem {
 ///     sampling_dt: f64,
@@ -54,7 +54,7 @@ pub trait Discrete {
 ///
 /// ```
 /// use nalgebra as na;
-/// use control_sys_rs::control::model::Pole;
+/// use control_sys_rs::model::Pole;
 ///
 /// struct MySystem;
 ///
@@ -68,7 +68,7 @@ pub trait Discrete {
 /// let poles = system.poles();
 /// assert_eq!(poles, vec![na::Complex::new(1.0, 2.0), na::Complex::new(3.0, 4.0)]);
 /// ```
-/// 
+///
 pub trait Pole {
     /// Returnes a vector of complex numbers representing the poles of the system.
     fn poles(&self) -> Vec<na::Complex<f64>>;
