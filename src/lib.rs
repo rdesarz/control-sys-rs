@@ -1,8 +1,8 @@
 #![warn(missing_docs)]
 /*!
-# control-sys.rs
+# control_sys
 
-**Control-sys.rs** is a control system library written in Rust. It implements tools to represent and analyze LTI systems using state-space model.
+**control_sys** is a control system library written in Rust. It implements tools to represent and analyze LTI systems using state-space model.
 
 ## Examples
 
@@ -12,7 +12,7 @@ A continuous state space model can be defined with `ContinuousStateSpaceModel`. 
 
 ```rust
 use nalgebra as na;
-use control_sys_rs::model;
+use control_sys::model;
 
 // DC motor parameters
 let b = 0.1f64;
@@ -38,7 +38,7 @@ A `DiscreteStateSpaceModel` can be built from a continuous one. You then need to
 
 ```rust
 use nalgebra as na;
-use control_sys_rs::model;
+use control_sys::model;
 
 // DC motor parameters
 let b = 0.1f64;
@@ -67,7 +67,7 @@ You can compute the step response of a system. For a discrete system, the simula
 
 ```rust
 use nalgebra as na;
-use control_sys_rs::{model, simulator};
+use control_sys::{model, simulator};
 
 // DC motor parameters
 let b = 0.1f64;
@@ -101,7 +101,7 @@ You can also compute the step response for a continuous model. You will need to 
 
 ```rust
 use nalgebra as na;
-use control_sys_rs::{model, simulator};
+use control_sys::{model, simulator};
 
 // DC motor parameters
 let b = 0.1f64;
@@ -136,7 +136,7 @@ The controllability of a system can be evaluated using the `is_ss_controllable` 
 
 ```rust
 use nalgebra as na;
-use control_sys_rs::{model, analysis};
+use control_sys::{model, analysis};
 
 let ss_model = model::DiscreteStateSpaceModel::from_matrices(
         &nalgebra::dmatrix![1.0, -2.0; 

@@ -1,7 +1,7 @@
 version: "3.1"
 services:
-  control-sys-rs:
-    container_name: control-sys-rs
+  control_sys:
+    container_name: control_sys
     build:
       context: .
     restart: "unless-stopped"

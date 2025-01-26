@@ -27,7 +27,7 @@ pub trait StateSpaceModel {
 /// # Examples
 ///
 /// ```
-/// use control_sys_rs::model::Discrete;
+/// use control_sys::model::Discrete;
 ///
 /// struct MyDiscreteSystem {
 ///     sampling_dt: f64,
@@ -54,7 +54,7 @@ pub trait Discrete {
 ///
 /// ```
 /// use nalgebra as na;
-/// use control_sys_rs::model::Pole;
+/// use control_sys::model::Pole;
 ///
 /// struct MySystem;
 ///

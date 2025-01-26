@@ -16,6 +16,6 @@ RUN rustup component add rustfmt
 RUN cargo install cargo-generate
 
 # Copy the project inside the image
-COPY . /root/control-sys-rs
+COPY . /root/control_sys
 
-WORKDIR /root/control-sys-rs
+WORKDIR /root/control_sys

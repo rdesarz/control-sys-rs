@@ -1,9 +1,9 @@
 [package]
-name = "control-sys-rs"
+name = "control_sys"
 version = "0.1.0"
 edition = "2021"
 
-description = "Control-sys.rs. A Control System library implemented in Rust to design and analyze control systems."
+description = "A Control System library implemented in Rust to design and analyze control systems."
 authors = ["Romain Desarzens"]
 readme = "README.md"
 
