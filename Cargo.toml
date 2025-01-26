@@ -17,10 +17,10 @@ include = [
 plotters = "0.3.3"
 nalgebra = "0.33.2"
 
-[[bin]]
+[[examples]]
 name = "step_response"
 path = "examples/step_response.rs"
 
-[[bin]]
+[[examples]]
 name = "controllability"
 path = "examples/controllability.rs"
