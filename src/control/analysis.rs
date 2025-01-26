@@ -165,7 +165,7 @@ pub fn compute_observability_matrix(
 /// # Panics
 ///
 /// This function will panic if the computation of the controllability matrix fails.
-/// 
+///
 /// # Examples
 ///
 /// ```
