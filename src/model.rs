@@ -126,7 +126,7 @@ impl ContinuousStateSpaceModel {
     /// # Returns
     ///
     /// A `ContinuousStateSpaceModel` in controllable canonical form.
-    pub fn build_controllable_canonical_form(tf: &TransferFunction) -> ContinuousStateSpaceModel {
+    fn build_controllable_canonical_form(tf: &TransferFunction) -> ContinuousStateSpaceModel {
         // TODO: Still need to normalize coefficients and check for size
         let n_states = tf.denominator_coeffs.len();
 
@@ -334,14 +334,14 @@ impl Discrete for DiscreteStateSpaceModel {
     }
 }
 
-pub struct TransferFunction {
-    pub numerator_coeffs: Vec<f64>,
-    pub denominator_coeffs: Vec<f64>,
+struct TransferFunction {
+    numerator_coeffs: Vec<f64>,
+    denominator_coeffs: Vec<f64>,
     constant: f64,
 }
 
 impl TransferFunction {
-    pub fn new(
+    fn new(
         numerator_coeffs: &[f64],
         denominator_coeffs: &[f64],
         constant: f64,
