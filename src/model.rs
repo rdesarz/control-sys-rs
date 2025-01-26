@@ -202,10 +202,10 @@ impl Pole for ContinuousStateSpaceModel {
 /// Additionally, the model includes a sampling time `sampling_dt` which represents the time interval between each discrete step.
 ///
 /// # Fields
-/// - `mat_a` (na::DMatrix<f64>): The state transition matrix.
-/// - `mat_b` (na::DMatrix<f64>): The control input matrix.
-/// - `mat_c` (na::DMatrix<f64>): The output matrix.
-/// - `mat_d` (na::DMatrix<f64>): The feedthrough matrix.
+/// - `mat_a` (`na::DMatrix<f64>`): The state transition matrix.
+/// - `mat_b` (`na::DMatrix<f64>`): The control input matrix.
+/// - `mat_c` (`na::DMatrix<f64>`): The output matrix.
+/// - `mat_d` (`na::DMatrix<f64>`): The feedthrough matrix.
 /// - `sampling_dt` (f64): The sampling time interval.
 pub struct DiscreteStateSpaceModel {
     mat_a: na::DMatrix<f64>,
