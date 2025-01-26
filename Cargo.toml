@@ -1,9 +1,9 @@
 [package]
-name = "control_sys"
+name = "control-sys"
 version = "0.1.0"
 authors = ["Romain Desarzens <rdsrz@pm.me>"]
 description = "A Control System library implemented in Rust to design and analyze control systems."
-repository = "https://github.com/rdesarz/control_sys_rs"
+repository = "https://github.com/rdesarz/control-sys-rs"
 readme = "README.md"
 categories = ["science", "mathematics", "wasm"]
 keywords = ["control-theory", "control-systems", "state-space-model"]

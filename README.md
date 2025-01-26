@@ -1,8 +1,8 @@
-# control_sys, a control system library written in Rust
+# control-sys, a control system library written in Rust
 
-![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rdesarz/control_sys_rs/rust.yml)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rdesarz/control-sys-rs/rust.yml)
 
-**control_sys** is a control system library written in Rust. It implements tools to represent and analyze LTI systems using state-space model.
+**control-sys** is a control system library written in Rust. It implements tools to represent and analyze LTI systems using state-space model.
 
 ## Examples
 

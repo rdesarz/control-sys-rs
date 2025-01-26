@@ -1,8 +1,8 @@
 #![warn(missing_docs)]
 /*!
-# control_sys
+# control-sys
 
-**control_sys** is a control system library written in Rust. It implements tools to represent and analyze LTI systems using state-space model.
+**control-sys** is a control system library written in Rust. It implements tools to represent and analyze LTI systems using state-space model.
 
 ## Examples
 
