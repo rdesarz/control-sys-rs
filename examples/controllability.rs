@@ -1,5 +1,5 @@
-use control_sys_rs::control::analysis;
-use control_sys_rs::control::model;
+use control_sys_rs::analysis;
+use control_sys_rs::model;
 
 extern crate nalgebra as na;
 
