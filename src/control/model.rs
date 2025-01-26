@@ -4,27 +4,18 @@ extern crate nalgebra as na;
 ///
 /// This trait provides methods to access the state-space matrices A, B, C, and D,
 /// which are fundamental components of the state-space representation of a system.
-///
-/// # Methods
-///
-/// * `mat_a(&self) -> &na::DMatrix<f64>`
-///     - Returns a reference to the state matrix A.
-///
-/// * `mat_b(&self) -> &na::DMatrix<f64>`
-///     - Returns a reference to the input matrix B.
-///
-/// * `mat_c(&self) -> &na::DMatrix<f64>`
-///     - Returns a reference to the output matrix C.
-///
-/// * `mat_d(&self) -> &na::DMatrix<f64>`
-///     - Returns a reference to the feedthrough matrix D.
+/// 
 pub trait StateSpaceModel {
+    /// Returns a reference to the state matrix A.
     fn mat_a(&self) -> &na::DMatrix<f64>;
 
+    /// Returns a reference to the input matrix B.
     fn mat_b(&self) -> &na::DMatrix<f64>;
 
+    /// Returns a reference to the output matrix C.
     fn mat_c(&self) -> &na::DMatrix<f64>;
 
+    /// Returns a reference to the feedthrough matrix D.
     fn mat_d(&self) -> &na::DMatrix<f64>;
 }
 
@@ -52,12 +43,8 @@ pub trait StateSpaceModel {
 /// assert_eq!(system.sampling_dt(), 0.1);
 /// ```
 ///
-/// # Required Methods
-///
-/// * `sampling_dt(&self) -> f64`
-///
-/// Returns the sampling time interval (`dt`) of the discrete system.
 pub trait Discrete {
+    /// Returns the sampling time interval (`dt`) of the discrete system.
     fn sampling_dt(&self) -> f64;
 }
 
@@ -81,11 +68,9 @@ pub trait Discrete {
 /// let poles = system.poles();
 /// assert_eq!(poles, vec![na::Complex::new(1.0, 2.0), na::Complex::new(3.0, 4.0)]);
 /// ```
-///
-/// # Returns
-///
-/// A vector of complex numbers representing the poles of the system.
+/// 
 pub trait Pole {
+    /// Returnes a vector of complex numbers representing the poles of the system.
     fn poles(&self) -> Vec<na::Complex<f64>>;
 }
 
