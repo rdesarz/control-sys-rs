@@ -216,6 +216,14 @@ impl Pole for ContinuousStateSpaceModel {
     }
 }
 
+impl Zero for ContinuousStateSpaceModel {
+    fn zeros(&self) -> Vec<na::Complex<f64>> {
+        // Compute the zeros of the continuous state-space model
+        // This is a placeholder implementation
+        vec![na::Complex::new(1.0, -1.0), na::Complex::new(2.0, -2.0)]
+    }
+}
+
 #[derive(Debug, Clone)]
 /// A struct representing a discrete state-space model.
 ///
@@ -357,6 +365,14 @@ impl Pole for DiscreteStateSpaceModel {
 impl Discrete for DiscreteStateSpaceModel {
     fn sampling_dt(&self) -> f64 {
         return self.sampling_dt;
+    }
+}
+
+impl Zero for DiscreteStateSpaceModel {
+    fn zeros(&self) -> Vec<na::Complex<f64>> {
+        // Compute the zeros of the discrete state-space model
+        // This is a placeholder implementation
+        vec![na::Complex::new(1.0, -1.0), na::Complex::new(2.0, -2.0)]
     }
 }
 
