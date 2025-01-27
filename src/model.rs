@@ -74,6 +74,32 @@ pub trait Pole {
     fn poles(&self) -> Vec<na::Complex<f64>>;
 }
 
+/// A trait representing a system that has zeros in the complex plane.
+///
+/// # Examples
+///
+/// ```
+/// use nalgebra as na;
+/// use control_sys::model::Zero;
+///
+/// struct MySystem;
+///
+/// impl Zero for MySystem {
+///     fn zeros(&self) -> Vec<na::Complex<f64>> {
+///         vec![na::Complex::new(1.0, -1.0), na::Complex::new(2.0, -2.0)]
+///     }
+/// }
+///
+/// let system = MySystem;
+/// let zeros = system.zeros();
+/// assert_eq!(zeros, vec![na::Complex::new(1.0, -1.0), na::Complex::new(2.0, -2.0)]);
+/// ```
+///
+pub trait Zero {
+    /// Returns a vector of complex numbers representing the zeros of the system.
+    fn zeros(&self) -> Vec<na::Complex<f64>>;
+}
+
 #[derive(Debug, Clone)]
 /// A struct representing a continuous state-space model.
 ///
