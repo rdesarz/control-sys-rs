@@ -172,3 +172,6 @@ pub mod simulator;
 
 /// Methods to generate trajectories
 pub mod trajectory;
+
+/// Methods and structs to create controllers
+pub mod controller;
