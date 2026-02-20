@@ -58,35 +58,12 @@ impl From<ModelError> for SimulationError {
 /// Simulates a discrete state-space model for an arbitrary input sequence.
 ///
 /// The model equations are:
-/// `x[k+1] = A x[k] + B u[k] + w[k]`
-/// `y[k]   = C x[k] + D u[k] + v[k]`
-///
-/// For `simulate`, noise terms are zero.
+/// `x[k+1] = A x[k] + B u[k]`
+/// `y[k]   = C x[k] + D u[k]`
 pub fn simulate(
     model: &(impl StateSpaceModel + Discrete),
     mat_u: &na::DMatrix<f64>,
     x0: &na::DVector<f64>,
-) -> Result<(na::DMatrix<f64>, na::DMatrix<f64>), SimulationError> {
-    simulate_with_noise(
-        model,
-        mat_u,
-        x0,
-        &na::DMatrix::zeros(model.mat_a().nrows(), mat_u.ncols()),
-        &na::DMatrix::zeros(model.mat_c().nrows(), mat_u.ncols()),
-    )
-}
-
-/// Simulates a discrete model with additive process and measurement noise.
-///
-/// Noise matrices are simulation-only hooks and are not estimator models:
-/// `process_noise` has shape `(n_state, n_samples)` and `measurement_noise` has
-/// shape `(n_output, n_samples)`.
-pub fn simulate_with_noise(
-    model: &(impl StateSpaceModel + Discrete),
-    mat_u: &na::DMatrix<f64>,
-    x0: &na::DVector<f64>,
-    process_noise: &na::DMatrix<f64>,
-    measurement_noise: &na::DMatrix<f64>,
 ) -> Result<(na::DMatrix<f64>, na::DMatrix<f64>), SimulationError> {
     let n_state = model.mat_a().nrows();
     let n_input = model.mat_b().ncols();
@@ -94,17 +71,6 @@ pub fn simulate_with_noise(
     let sim_time = mat_u.ncols();
 
     if mat_u.nrows() != n_input || x0.nrows() != n_state {
-        return Err(SimulationError::DimensionMismatch {
-            expected_u_rows: n_input,
-            actual_u_rows: mat_u.nrows(),
-            expected_x0_rows: n_state,
-            actual_x0_rows: x0.nrows(),
-        });
-    }
-
-    if process_noise.shape() != (n_state, sim_time)
-        || measurement_noise.shape() != (n_output, sim_time)
-    {
         return Err(SimulationError::DimensionMismatch {
             expected_u_rows: n_input,
             actual_u_rows: mat_u.nrows(),
@@ -121,10 +87,10 @@ pub fn simulate_with_noise(
         let xk = mat_x.column(i).into_owned();
         let uk = mat_u.column(i).into_owned();
 
-        let yk = model.mat_c() * &xk + model.mat_d() * &uk + measurement_noise.column(i);
+        let yk = model.mat_c() * &xk + model.mat_d() * &uk;
         mat_y.column_mut(i).copy_from(&yk);
 
-        let x_next = model.mat_a() * xk + model.mat_b() * uk + process_noise.column(i);
+        let x_next = model.mat_a() * xk + model.mat_b() * uk;
         mat_x.column_mut(i + 1).copy_from(&x_next);
     }
 
@@ -289,18 +255,4 @@ mod tests {
         assert_eq!(y.ncols(), 0);
     }
 
-    #[test]
-    fn test_simulate_with_noise() {
-        let model = first_order_siso_model_with_d();
-        let u = na::dmatrix![0.0, 0.0];
-        let x0 = na::dvector![0.0];
-        let w = na::dmatrix![1.0, 1.0];
-        let v = na::dmatrix![0.1, 0.1];
-
-        let (y, x) = simulate_with_noise(&model, &u, &x0, &w, &v).unwrap();
-
-        assert_eq!(y.shape(), (1, 2));
-        assert_eq!(x.shape(), (1, 3));
-        assert!((y[(0, 0)] - 0.1).abs() < 1e-12);
-    }
 }

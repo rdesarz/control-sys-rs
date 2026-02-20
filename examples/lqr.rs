@@ -1,3 +1,5 @@
+// LQR design example:
+// Build a continuous model, compute an LQR gain K, and print the closed-loop A-BK matrix.
 use control_sys::controller;
 use control_sys::model;
 use control_sys::model::StateSpaceModel;

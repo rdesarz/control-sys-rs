@@ -1,3 +1,5 @@
+// Controllability example:
+// Build a discrete state-space model and compute its controllability matrix/rank.
 use control_sys::analysis;
 use control_sys::model;
 
