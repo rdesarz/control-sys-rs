@@ -238,6 +238,7 @@ mod tests {
 
     use crate::model::DiscreteStateSpaceModel;
 
+    // Verifies controllability matrix construction for a nominal 2x2 system.
     #[test]
     fn test_compute_controllability_matrix_2x2() {
         let mat_a = nalgebra::dmatrix![1.0, -2.0;
@@ -252,6 +253,7 @@ mod tests {
         assert_eq!(result, na::stack![mat_b, mat_a * &mat_b]);
     }
 
+    // Verifies a non-square A matrix is rejected for controllability computation.
     #[test]
     fn test_compute_controllability_matrix_mat_a_not_square() {
         let mat_a = nalgebra::dmatrix![1.0, -2.0];
@@ -266,6 +268,7 @@ mod tests {
         );
     }
 
+    // Verifies a known controllable 2x2 model is detected as controllable.
     #[test]
     fn test_controllability_2x2_controllable() {
         #[allow(deprecated)]
@@ -284,6 +287,7 @@ mod tests {
         assert!(result);
     }
 
+    // Verifies a known 3x3 model is detected as not controllable.
     #[test]
     fn test_controllability_3x3_not_controllable() {
         #[allow(deprecated)]
@@ -304,6 +308,7 @@ mod tests {
         assert!(!is_ss_controllable(&ss_model).0);
     }
 
+    // Verifies observability matrix construction for a nominal 2x2 system.
     #[test]
     fn test_compute_observability_matrix_2x2() {
         let mat_a = nalgebra::dmatrix![1.0, -2.0;
@@ -317,6 +322,7 @@ mod tests {
         assert_eq!(result, na::stack![&mat_c; &mat_c * mat_a]);
     }
 
+    // Verifies a non-square A matrix is rejected for observability computation.
     #[test]
     fn test_compute_observability_matrix_mat_a_not_square() {
         let mat_a = nalgebra::dmatrix![1.0, -2.0];
@@ -330,6 +336,7 @@ mod tests {
         );
     }
 
+    // Verifies a known observable 2x2 model is detected as observable.
     #[test]
     fn test_is_observable_2x2_observable_system() {
         #[allow(deprecated)]
@@ -348,6 +355,7 @@ mod tests {
         assert!(result);
     }
 
+    // Verifies a known 3x3 model is detected as not observable.
     #[test]
     fn test_observability_3x3_not_observable() {
         #[allow(deprecated)]
@@ -376,6 +384,7 @@ mod tests {
         );
     }
 
+    // Verifies discrete stability helpers on a stable single-state model.
     #[test]
     fn test_stability_checks() {
         #[allow(deprecated)]
@@ -391,6 +400,7 @@ mod tests {
         assert!(spectral_radius(&discrete_stable) < 1.0);
     }
 
+    // Verifies the consolidated LTI report fields are populated consistently.
     #[test]
     fn test_analyze_lti_discrete_report() {
         #[allow(deprecated)]
