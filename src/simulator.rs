@@ -236,10 +236,33 @@ mod tests {
         )
         .unwrap();
 
-        let (_y, u, _x) = step_for_discrete_ss(&model, 1.0).unwrap();
+        let (y, u, x) = step_for_discrete_ss(&model, 1.0).unwrap();
 
         assert_eq!(u.nrows(), 2);
         assert_eq!(u.ncols(), 10);
+        assert_eq!(y.shape(), (2, 10));
+        assert_eq!(x.shape(), (2, 11));
+
+        // U should be a 2x10 unit step for each input channel.
+        for i in 0..u.nrows() {
+            for k in 0..u.ncols() {
+                assert!((u[(i, k)] - 1.0).abs() < 1e-12);
+            }
+        }
+
+        // With A = I, B = I, x0 = 0 and u_k = 1:
+        // x_k = [k, k]^T and y_k = x_k (C = I, D = 0).
+        for k in 0..10 {
+            let expected_state = k as f64;
+            assert!((x[(0, k)] - expected_state).abs() < 1e-12);
+            assert!((x[(1, k)] - expected_state).abs() < 1e-12);
+            assert!((y[(0, k)] - expected_state).abs() < 1e-12);
+            assert!((y[(1, k)] - expected_state).abs() < 1e-12);
+        }
+
+        // Last state sample is after 10 updates.
+        assert!((x[(0, 10)] - 10.0).abs() < 1e-12);
+        assert!((x[(1, 10)] - 10.0).abs() < 1e-12);
     }
 
     // Verifies zero-duration simulation returns empty I/O and initial-state-only trajectory.
