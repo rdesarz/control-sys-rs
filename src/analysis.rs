@@ -40,6 +40,7 @@ pub struct LtiAnalysisReport {
 }
 
 /// Computes the controllability matrix `[B, AB, ..., A^(n-1)B]`.
+#[allow(clippy::toplevel_ref_arg)]
 pub fn compute_controllability_matrix(
     mat_a: &na::DMatrix<f64>,
     mat_b: &na::DMatrix<f64>,
@@ -83,6 +84,7 @@ pub fn is_ss_controllable<T: StateSpaceModel>(model: &T) -> (bool, na::DMatrix<f
 }
 
 /// Computes the observability matrix `[C; CA; ...; CA^(n-1)]`.
+#[allow(clippy::toplevel_ref_arg)]
 pub fn compute_observability_matrix(
     mat_a: &na::DMatrix<f64>,
     mat_c: &na::DMatrix<f64>,
