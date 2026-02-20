@@ -94,7 +94,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     chart
         .draw_series(LineSeries::new(series_input, &Palette99::pick(0)))?
         .label("Input")
-        .legend(move |(x, y)| PathElement::new([(x, y), (x + 20, y)], &Palette99::pick(0)));
+        .legend(move |(x, y)| PathElement::new([(x, y), (x + 20, y)], Palette99::pick(0)));
 
     let series_y: Vec<(i32, f64)> = step_response
         .row(0)
@@ -107,8 +107,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     chart
         .configure_series_labels()
-        .background_style(&WHITE)
-        .border_style(&BLACK)
+        .background_style(WHITE)
+        .border_style(BLACK)
         .draw()?;
 
     Ok(())
