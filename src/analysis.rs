@@ -15,6 +15,30 @@ pub struct RankDiagnostics {
     pub is_full_rank: bool,
 }
 
+/// Time domain used for stability checks.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TimeDomain {
+    /// Continuous-time model (`Re(lambda_i) < 0` for stability).
+    Continuous,
+    /// Discrete-time model (`|lambda_i| < 1` for stability).
+    Discrete,
+}
+
+/// Consolidated analysis report for an LTI state-space model.
+#[derive(Debug, Clone)]
+pub struct LtiAnalysisReport {
+    /// Eigenvalues of the state matrix.
+    pub poles: Vec<na::Complex<f64>>,
+    /// Spectral radius `max(|lambda_i|)`.
+    pub spectral_radius: f64,
+    /// Stability result based on chosen [`TimeDomain`].
+    pub is_stable: bool,
+    /// Controllability diagnostics.
+    pub controllability: RankDiagnostics,
+    /// Observability diagnostics.
+    pub observability: RankDiagnostics,
+}
+
 /// Computes the controllability matrix `[B, AB, ..., A^(n-1)B]`.
 pub fn compute_controllability_matrix(
     mat_a: &na::DMatrix<f64>,
@@ -154,6 +178,39 @@ pub fn is_discrete_stable<T: Pole>(model: &T) -> bool {
 /// Returns true if all continuous poles have negative real part.
 pub fn is_continuous_stable<T: Pole>(model: &T) -> bool {
     model.poles().iter().all(|pole| pole.re < 0.0)
+}
+
+/// Performs a full first-pass LTI analysis.
+///
+/// This combines:
+///
+/// - Pole extraction
+/// - Spectral radius
+/// - Stability check for the selected [`TimeDomain`]
+/// - Controllability diagnostics
+/// - Observability diagnostics
+pub fn analyze_lti<T: StateSpaceModel + Pole>(
+    model: &T,
+    domain: TimeDomain,
+    rank_tol: f64,
+) -> Result<LtiAnalysisReport, ModelError> {
+    let poles = model.poles();
+    let spectral_radius = poles.iter().map(|pole| pole.norm()).fold(0.0f64, f64::max);
+    let is_stable = match domain {
+        TimeDomain::Continuous => poles.iter().all(|pole| pole.re < 0.0),
+        TimeDomain::Discrete => poles.iter().all(|pole| pole.norm() < 1.0),
+    };
+
+    let controllability = controllability_diagnostics(model, rank_tol)?;
+    let observability = observability_diagnostics(model, rank_tol)?;
+
+    Ok(LtiAnalysisReport {
+        poles,
+        spectral_radius,
+        is_stable,
+        controllability,
+        observability,
+    })
 }
 
 fn condition_number(mat: &na::DMatrix<f64>, min_sv_tol: f64) -> f64 {
@@ -332,5 +389,24 @@ mod tests {
 
         assert!(is_discrete_stable(&discrete_stable));
         assert!(spectral_radius(&discrete_stable) < 1.0);
+    }
+
+    #[test]
+    fn test_analyze_lti_discrete_report() {
+        #[allow(deprecated)]
+        let model = DiscreteStateSpaceModel::from_matrices(
+            &na::dmatrix![0.8, 0.0; 0.0, 0.7],
+            &na::dmatrix![1.0; 0.0],
+            &na::dmatrix![1.0, 0.0],
+            &na::dmatrix![0.0],
+            0.1,
+        );
+
+        let report = analyze_lti(&model, TimeDomain::Discrete, 1e-6).unwrap();
+
+        assert!(report.is_stable);
+        assert!(report.spectral_radius < 1.0);
+        assert_eq!(report.controllability.expected_rank, 2);
+        assert_eq!(report.observability.expected_rank, 2);
     }
 }

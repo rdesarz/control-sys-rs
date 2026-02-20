@@ -35,3 +35,7 @@ path = "examples/lqr.rs"
 [[example]]
 name = "end_to_end"
 path = "examples/end_to_end.rs"
+
+[[example]]
+name = "analysis_report"
+path = "examples/analysis_report.rs"
