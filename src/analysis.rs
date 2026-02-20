@@ -65,7 +65,7 @@ pub fn compute_controllability_matrix(
 
     for i in 1..n {
         let column_block = mat_a.pow(i as u32) * mat_b;
-        controllability_matrix = na::stack![controllability_matrix, column_block];
+        controllability_matrix = na::stack![&controllability_matrix, &column_block];
     }
 
     Ok(controllability_matrix)
@@ -108,7 +108,7 @@ pub fn compute_observability_matrix(
 
     for i in 1..n {
         let column_block = mat_c * mat_a.pow(i as u32);
-        observability_mat = na::stack![observability_mat; column_block];
+        observability_mat = na::stack![&observability_mat; &column_block];
     }
 
     Ok(observability_mat)
@@ -250,7 +250,7 @@ mod tests {
 
         assert_eq!(result.nrows(), mat_b.nrows());
         assert_eq!(result.ncols(), mat_b.ncols() * mat_a.ncols());
-        assert_eq!(result, na::stack![mat_b, mat_a * &mat_b]);
+        assert_eq!(result, na::stack![&mat_b, &mat_a * &mat_b]);
     }
 
     // Verifies a non-square A matrix is rejected for controllability computation.
@@ -319,7 +319,7 @@ mod tests {
 
         assert_eq!(result.nrows(), mat_a.ncols());
         assert_eq!(result.ncols(), mat_c.ncols());
-        assert_eq!(result, na::stack![&mat_c; &mat_c * mat_a]);
+        assert_eq!(result, na::stack![&mat_c; &mat_c * &mat_a]);
     }
 
     // Verifies a non-square A matrix is rejected for observability computation.
