@@ -239,6 +239,7 @@ mod tests {
     use crate::model::DiscreteStateSpaceModel;
 
     // Verifies controllability matrix construction for a nominal 2x2 system.
+    #[allow(clippy::toplevel_ref_arg)]
     #[test]
     fn test_compute_controllability_matrix_2x2() {
         let mat_a = nalgebra::dmatrix![1.0, -2.0;
@@ -309,6 +310,7 @@ mod tests {
     }
 
     // Verifies observability matrix construction for a nominal 2x2 system.
+    #[allow(clippy::toplevel_ref_arg)]
     #[test]
     fn test_compute_observability_matrix_2x2() {
         let mat_a = nalgebra::dmatrix![1.0, -2.0;
