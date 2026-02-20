@@ -209,6 +209,7 @@ mod tests {
         .unwrap()
     }
 
+    // Verifies simulation output includes direct feedthrough term D*u.
     #[test]
     fn test_simulate_includes_feedthrough_term() {
         let model = first_order_siso_model_with_d();
@@ -217,10 +218,13 @@ mod tests {
 
         let (y, _x) = simulate(&model, &u, &x0).unwrap();
 
-        assert!((y[(0, 0)] - 2.0).abs() < 1e-12);
-        assert!((y[(0, 1)] - 3.0).abs() < 1e-12);
+        assert_eq!(y.ncols(), 3);
+        assert!((y[0] - 2.0).abs() < 1e-12);
+        assert!((y[1] - 3.0).abs() < 1e-12);
+        assert!((y[2] - 3.5).abs() < 1e-12);
     }
 
+    // Verifies step generation matches the number of model inputs for MIMO systems.
     #[test]
     fn test_step_supports_mimo_inputs() {
         let model = DiscreteStateSpaceModel::try_from_matrices(
@@ -238,6 +242,7 @@ mod tests {
         assert_eq!(u.ncols(), 10);
     }
 
+    // Verifies zero-duration simulation returns empty I/O and initial-state-only trajectory.
     #[test]
     fn test_zero_duration_response() {
         let model = first_order_siso_model_with_d();
@@ -248,6 +253,7 @@ mod tests {
         assert_eq!(x.shape(), (1, 1));
     }
 
+    // Verifies durations shorter than one sampling period produce zero output samples.
     #[test]
     fn test_short_duration_response() {
         let model = first_order_siso_model_with_d();
