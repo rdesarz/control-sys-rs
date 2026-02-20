@@ -1,5 +1,56 @@
 extern crate nalgebra as na;
 
+use std::error::Error;
+use std::fmt;
+
+/// Error type for state-space model creation and transformations.
+#[derive(Debug, Clone, PartialEq)]
+pub enum ModelError {
+    /// State matrix `A` is not square.
+    MatrixANotSquare {
+        /// Number of rows in `A`.
+        rows: usize,
+        /// Number of columns in `A`.
+        cols: usize,
+    },
+    /// State-space matrix dimensions are incompatible.
+    DimensionMismatch {
+        /// Shape of matrix `A`.
+        a: (usize, usize),
+        /// Shape of matrix `B`.
+        b: (usize, usize),
+        /// Shape of matrix `C`.
+        c: (usize, usize),
+        /// Shape of matrix `D`.
+        d: (usize, usize),
+    },
+    /// Sampling time is invalid.
+    InvalidSamplingDt(f64),
+    /// Matrix inversion failed.
+    SingularMatrix(&'static str),
+}
+
+impl fmt::Display for ModelError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ModelError::MatrixANotSquare { rows, cols } => {
+                write!(f, "A must be square, got {rows}x{cols}")
+            }
+            ModelError::DimensionMismatch { a, b, c, d } => write!(
+                f,
+                "incompatible dimensions: A={:?}, B={:?}, C={:?}, D={:?}",
+                a, b, c, d
+            ),
+            ModelError::InvalidSamplingDt(dt) => {
+                write!(f, "sampling_dt must be finite and > 0.0, got {dt}")
+            }
+            ModelError::SingularMatrix(ctx) => write!(f, "matrix inversion failed: {ctx}"),
+        }
+    }
+}
+
+impl Error for ModelError {}
+
 /// A trait representing a state-space model in control systems.
 ///
 /// This trait provides methods to access the state-space matrices A, B, C, and D,
@@ -91,43 +142,39 @@ pub struct ContinuousStateSpaceModel {
 
 /// Represents a continuous state-space model.
 impl ContinuousStateSpaceModel {
-    /// Creates a new `ContinuousStateSpaceModel` with the given matrices.
-    ///
-    /// # Arguments
-    ///
-    /// * `mat_a` - State matrix (A).
-    /// * `mat_b` - Input matrix (B).
-    /// * `mat_c` - Output matrix (C).
-    /// * `mat_d` - Feedthrough matrix (D).
-    ///
-    /// # Returns
-    ///
-    /// A new instance of `ContinuousStateSpaceModel`.
+    /// Creates a new `ContinuousStateSpaceModel` with full dimension checks.
+    pub fn try_from_matrices(
+        mat_a: &na::DMatrix<f64>,
+        mat_b: &na::DMatrix<f64>,
+        mat_c: &na::DMatrix<f64>,
+        mat_d: &na::DMatrix<f64>,
+    ) -> Result<ContinuousStateSpaceModel, ModelError> {
+        validate_state_space_dimensions(mat_a, mat_b, mat_c, mat_d)?;
+
+        Ok(ContinuousStateSpaceModel {
+            mat_a: mat_a.clone(),
+            mat_b: mat_b.clone(),
+            mat_c: mat_c.clone(),
+            mat_d: mat_d.clone(),
+        })
+    }
+
+    /// Creates a new model without runtime checks.
+    #[deprecated(note = "Use try_from_matrices for validated construction")]
     pub fn from_matrices(
         mat_a: &na::DMatrix<f64>,
         mat_b: &na::DMatrix<f64>,
         mat_c: &na::DMatrix<f64>,
         mat_d: &na::DMatrix<f64>,
     ) -> ContinuousStateSpaceModel {
-        ContinuousStateSpaceModel {
-            mat_a: mat_a.clone(),
-            mat_b: mat_b.clone(),
-            mat_c: mat_c.clone(),
-            mat_d: mat_d.clone(),
-        }
+        Self::try_from_matrices(mat_a, mat_b, mat_c, mat_d).expect("invalid state-space dimensions")
     }
 
     /// Builds a controllable canonical form state-space model from a transfer function.
-    ///
-    /// # Arguments
-    ///
-    /// * `tf` - The transfer function to convert.
-    ///
-    /// # Returns
-    ///
-    /// A `ContinuousStateSpaceModel` in controllable canonical form.
-    fn build_controllable_canonical_form(tf: &TransferFunction) -> ContinuousStateSpaceModel {
-        // TODO: Still need to normalize coefficients and check for size
+    #[cfg(test)]
+    fn build_controllable_canonical_form(
+        tf: &TransferFunction,
+    ) -> Result<ContinuousStateSpaceModel, ModelError> {
         let n_states = tf.denominator_coeffs.len();
 
         let mut mat_a = na::DMatrix::<f64>::zeros(n_states, n_states);
@@ -135,52 +182,45 @@ impl ContinuousStateSpaceModel {
             .view_range_mut(0..n_states - 1, 1..)
             .copy_from(&na::DMatrix::<f64>::identity(n_states - 1, n_states - 1));
         for (i, value) in tf.denominator_coeffs.iter().rev().enumerate() {
-            mat_a[(n_states - 1, i)] = -value.clone();
+            mat_a[(n_states - 1, i)] = -*value;
         }
 
         let mut mat_b = na::DMatrix::<f64>::zeros(tf.numerator_coeffs.len(), 1);
         mat_b[(tf.numerator_coeffs.len() - 1, 0)] = 1.0f64;
 
-        let mut mat_c = na::DMatrix::<f64>::zeros(tf.numerator_coeffs.len(), 1);
+        let mut mat_c = na::DMatrix::<f64>::zeros(1, n_states);
         for (i, value) in tf.numerator_coeffs.iter().rev().enumerate() {
-            mat_c[(i, 0)] = value.clone();
+            if i < n_states {
+                mat_c[(0, i)] = *value;
+            }
         }
 
         let mat_d = na::dmatrix![tf.constant];
 
-        ContinuousStateSpaceModel {
-            mat_a: mat_a,
-            mat_b: mat_b,
-            mat_c: mat_c,
-            mat_d: mat_d,
-        }
+        Self::try_from_matrices(&mat_a, &mat_b, &mat_c, &mat_d)
     }
 
     /// Returns the size of the state-space model.
-    ///
-    /// # Returns
-    ///
-    /// The number of states in the state-space model.
     pub fn state_space_size(&self) -> usize {
-        return self.mat_a.ncols();
+        self.mat_a.ncols()
     }
 }
 
 impl StateSpaceModel for ContinuousStateSpaceModel {
     fn mat_a(&self) -> &na::DMatrix<f64> {
-        return &self.mat_a;
+        &self.mat_a
     }
 
     fn mat_b(&self) -> &na::DMatrix<f64> {
-        return &self.mat_b;
+        &self.mat_b
     }
 
     fn mat_c(&self) -> &na::DMatrix<f64> {
-        return &self.mat_c;
+        &self.mat_c
     }
 
     fn mat_d(&self) -> &na::DMatrix<f64> {
-        return &self.mat_d;
+        &self.mat_d
     }
 }
 
@@ -200,13 +240,6 @@ impl Pole for ContinuousStateSpaceModel {
 /// - `mat_d`: The feedthrough (or direct transmission) matrix.
 ///
 /// Additionally, the model includes a sampling time `sampling_dt` which represents the time interval between each discrete step.
-///
-/// # Fields
-/// - `mat_a` (`na::DMatrix<f64>`): The state transition matrix.
-/// - `mat_b` (`na::DMatrix<f64>`): The control input matrix.
-/// - `mat_c` (`na::DMatrix<f64>`): The output matrix.
-/// - `mat_d` (`na::DMatrix<f64>`): The feedthrough matrix.
-/// - `sampling_dt` (f64): The sampling time interval.
 pub struct DiscreteStateSpaceModel {
     mat_a: na::DMatrix<f64>,
     mat_b: na::DMatrix<f64>,
@@ -217,36 +250,45 @@ pub struct DiscreteStateSpaceModel {
 
 impl StateSpaceModel for DiscreteStateSpaceModel {
     fn mat_a(&self) -> &na::DMatrix<f64> {
-        return &self.mat_a;
+        &self.mat_a
     }
 
     fn mat_b(&self) -> &na::DMatrix<f64> {
-        return &self.mat_b;
+        &self.mat_b
     }
 
     fn mat_c(&self) -> &na::DMatrix<f64> {
-        return &self.mat_c;
+        &self.mat_c
     }
 
     fn mat_d(&self) -> &na::DMatrix<f64> {
-        return &self.mat_d;
+        &self.mat_d
     }
 }
 
 impl DiscreteStateSpaceModel {
-    /// Creates a new `DiscreteStateSpaceModel` with the given state-space matrices and sampling time.
-    ///
-    /// # Arguments
-    ///
-    /// * `mat_a` - State transition matrix.
-    /// * `mat_b` - Control input matrix.
-    /// * `mat_c` - Observation matrix.
-    /// * `mat_d` - Feedforward matrix.
-    /// * `sampling_dt` - Sampling time interval.
-    ///
-    /// # Returns
-    ///
-    /// A new `DiscreteStateSpaceModel` instance.
+    /// Creates a new `DiscreteStateSpaceModel` with matrix and sampling-time checks.
+    pub fn try_from_matrices(
+        mat_a: &na::DMatrix<f64>,
+        mat_b: &na::DMatrix<f64>,
+        mat_c: &na::DMatrix<f64>,
+        mat_d: &na::DMatrix<f64>,
+        sampling_dt: f64,
+    ) -> Result<DiscreteStateSpaceModel, ModelError> {
+        validate_state_space_dimensions(mat_a, mat_b, mat_c, mat_d)?;
+        validate_sampling_dt(sampling_dt)?;
+
+        Ok(DiscreteStateSpaceModel {
+            mat_a: mat_a.clone(),
+            mat_b: mat_b.clone(),
+            mat_c: mat_c.clone(),
+            mat_d: mat_d.clone(),
+            sampling_dt,
+        })
+    }
+
+    /// Creates a new model without runtime checks.
+    #[deprecated(note = "Use try_from_matrices for validated construction")]
     pub fn from_matrices(
         mat_a: &na::DMatrix<f64>,
         mat_b: &na::DMatrix<f64>,
@@ -254,28 +296,169 @@ impl DiscreteStateSpaceModel {
         mat_d: &na::DMatrix<f64>,
         sampling_dt: f64,
     ) -> DiscreteStateSpaceModel {
-        DiscreteStateSpaceModel {
-            mat_a: mat_a.clone(),
-            mat_b: mat_b.clone(),
-            mat_c: mat_c.clone(),
-            mat_d: mat_d.clone(),
-            sampling_dt: sampling_dt,
-        }
+        Self::try_from_matrices(mat_a, mat_b, mat_c, mat_d, sampling_dt)
+            .expect("invalid state-space dimensions")
     }
 
-    /// Converts a continuous state-space model to a discrete state-space model using the forward Euler method.
-    ///
-    /// # Arguments
-    ///
-    /// * `mat_ac` - Continuous state transition matrix.
-    /// * `mat_bc` - Continuous control input matrix.
-    /// * `mat_cc` - Continuous observation matrix.
-    /// * `mat_dc` - Continuous feedforward matrix.
-    /// * `sampling_dt` - Sampling time interval.
-    ///
-    /// # Returns
-    ///
-    /// A new `DiscreteStateSpaceModel` instance.
+    /// Discretizes a continuous model using exact zero-order hold (ZOH).
+    pub fn from_continuous_matrix_zoh(
+        mat_ac: &na::DMatrix<f64>,
+        mat_bc: &na::DMatrix<f64>,
+        mat_cc: &na::DMatrix<f64>,
+        mat_dc: &na::DMatrix<f64>,
+        sampling_dt: f64,
+    ) -> Result<DiscreteStateSpaceModel, ModelError> {
+        validate_state_space_dimensions(mat_ac, mat_bc, mat_cc, mat_dc)?;
+        validate_sampling_dt(sampling_dt)?;
+
+        let n_states = mat_ac.nrows();
+        let n_inputs = mat_bc.ncols();
+        let mut aug = na::DMatrix::<f64>::zeros(n_states + n_inputs, n_states + n_inputs);
+        aug.view_mut((0, 0), (n_states, n_states))
+            .copy_from(&(mat_ac * sampling_dt));
+        aug.view_mut((0, n_states), (n_states, n_inputs))
+            .copy_from(&(mat_bc * sampling_dt));
+
+        let exp_aug = matrix_exponential(&aug);
+        let mat_a = exp_aug.view((0, 0), (n_states, n_states)).into_owned();
+        let mat_b = exp_aug
+            .view((0, n_states), (n_states, n_inputs))
+            .into_owned();
+
+        Self::try_from_matrices(&mat_a, &mat_b, mat_cc, mat_dc, sampling_dt)
+    }
+
+    /// Discretizes a continuous model using explicit forward Euler.
+    pub fn from_continuous_matrix_forward_euler_checked(
+        mat_ac: &na::DMatrix<f64>,
+        mat_bc: &na::DMatrix<f64>,
+        mat_cc: &na::DMatrix<f64>,
+        mat_dc: &na::DMatrix<f64>,
+        sampling_dt: f64,
+    ) -> Result<DiscreteStateSpaceModel, ModelError> {
+        validate_state_space_dimensions(mat_ac, mat_bc, mat_cc, mat_dc)?;
+        validate_sampling_dt(sampling_dt)?;
+
+        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
+        let mat_a = mat_i + mat_ac.scale(sampling_dt);
+        let mat_b = mat_bc.scale(sampling_dt);
+
+        Self::try_from_matrices(&mat_a, &mat_b, mat_cc, mat_dc, sampling_dt)
+    }
+
+    /// Discretizes a continuous model using implicit backward Euler.
+    pub fn from_continuous_matrix_backward_euler(
+        mat_ac: &na::DMatrix<f64>,
+        mat_bc: &na::DMatrix<f64>,
+        mat_cc: &na::DMatrix<f64>,
+        mat_dc: &na::DMatrix<f64>,
+        sampling_dt: f64,
+    ) -> Result<DiscreteStateSpaceModel, ModelError> {
+        validate_state_space_dimensions(mat_ac, mat_bc, mat_cc, mat_dc)?;
+        validate_sampling_dt(sampling_dt)?;
+
+        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
+        let inv = (mat_i - mat_ac.scale(sampling_dt))
+            .try_inverse()
+            .ok_or(ModelError::SingularMatrix("I - A*dt for backward Euler"))?;
+
+        let mat_a = inv.clone();
+        let mat_b = inv * mat_bc.scale(sampling_dt);
+
+        Self::try_from_matrices(&mat_a, &mat_b, mat_cc, mat_dc, sampling_dt)
+    }
+
+    /// Discretizes a continuous model using the bilinear/Tustin transform.
+    pub fn from_continuous_matrix_tustin(
+        mat_ac: &na::DMatrix<f64>,
+        mat_bc: &na::DMatrix<f64>,
+        mat_cc: &na::DMatrix<f64>,
+        mat_dc: &na::DMatrix<f64>,
+        sampling_dt: f64,
+    ) -> Result<DiscreteStateSpaceModel, ModelError> {
+        validate_state_space_dimensions(mat_ac, mat_bc, mat_cc, mat_dc)?;
+        validate_sampling_dt(sampling_dt)?;
+
+        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
+        let left = mat_i.clone() - mat_ac.scale(0.5 * sampling_dt);
+        let inv_left = left
+            .try_inverse()
+            .ok_or(ModelError::SingularMatrix("I - A*dt/2 for Tustin"))?;
+
+        let mat_a = &inv_left * (mat_i + mat_ac.scale(0.5 * sampling_dt));
+        let mat_b = inv_left * mat_bc.scale(sampling_dt);
+
+        Self::try_from_matrices(&mat_a, &mat_b, mat_cc, mat_dc, sampling_dt)
+    }
+
+    /// Discretizes a continuous model using exact ZOH.
+    pub fn from_continuous_zoh(
+        model: &ContinuousStateSpaceModel,
+        sampling_dt: f64,
+    ) -> Result<DiscreteStateSpaceModel, ModelError> {
+        Self::from_continuous_matrix_zoh(
+            model.mat_a(),
+            model.mat_b(),
+            model.mat_c(),
+            model.mat_d(),
+            sampling_dt,
+        )
+    }
+
+    /// Discretizes a continuous model using explicit forward Euler.
+    pub fn from_continuous_forward_euler(
+        model: &ContinuousStateSpaceModel,
+        sampling_dt: f64,
+    ) -> Result<DiscreteStateSpaceModel, ModelError> {
+        Self::from_continuous_matrix_forward_euler_checked(
+            model.mat_a(),
+            model.mat_b(),
+            model.mat_c(),
+            model.mat_d(),
+            sampling_dt,
+        )
+    }
+
+    /// Discretizes a continuous model using implicit backward Euler.
+    pub fn from_continuous_backward_euler(
+        model: &ContinuousStateSpaceModel,
+        sampling_dt: f64,
+    ) -> Result<DiscreteStateSpaceModel, ModelError> {
+        Self::from_continuous_matrix_backward_euler(
+            model.mat_a(),
+            model.mat_b(),
+            model.mat_c(),
+            model.mat_d(),
+            sampling_dt,
+        )
+    }
+
+    /// Discretizes a continuous model using Tustin.
+    pub fn from_continuous_tustin(
+        model: &ContinuousStateSpaceModel,
+        sampling_dt: f64,
+    ) -> Result<DiscreteStateSpaceModel, ModelError> {
+        Self::from_continuous_matrix_tustin(
+            model.mat_a(),
+            model.mat_b(),
+            model.mat_c(),
+            model.mat_d(),
+            sampling_dt,
+        )
+    }
+
+    /// Converts a continuous state-space model to a discrete model using forward Euler.
+    #[deprecated(note = "Use from_continuous_forward_euler")]
+    pub fn from_continuous_ss_forward_euler(
+        model: &ContinuousStateSpaceModel,
+        sampling_dt: f64,
+    ) -> DiscreteStateSpaceModel {
+        Self::from_continuous_forward_euler(model, sampling_dt)
+            .expect("forward Euler discretization failed")
+    }
+
+    /// Legacy matrix-based constructor for forward Euler.
+    #[deprecated(note = "Use from_continuous_matrix_forward_euler_checked")]
     pub fn from_continuous_matrix_forward_euler(
         mat_ac: &na::DMatrix<f64>,
         mat_bc: &na::DMatrix<f64>,
@@ -283,42 +466,14 @@ impl DiscreteStateSpaceModel {
         mat_dc: &na::DMatrix<f64>,
         sampling_dt: f64,
     ) -> DiscreteStateSpaceModel {
-        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
-        let mat_a = (mat_i - mat_ac.scale(sampling_dt)).try_inverse().unwrap();
-        let mat_b = &mat_a * mat_bc.scale(sampling_dt);
-        let mat_c = mat_cc.clone();
-        let mat_d = mat_dc.clone();
-
-        DiscreteStateSpaceModel {
-            mat_a: mat_a,
-            mat_b: mat_b,
-            mat_c: mat_c,
-            mat_d: mat_d,
-            sampling_dt: sampling_dt,
-        }
-    }
-
-    /// Converts a continuous state-space model to a discrete state-space model using the forward Euler method.
-    ///
-    /// # Arguments
-    ///
-    /// * `model` - A reference to a `ContinuousStateSpaceModel` instance.
-    /// * `sampling_dt` - Sampling time interval.
-    ///
-    /// # Returns
-    ///
-    /// A new `DiscreteStateSpaceModel` instance.
-    pub fn from_continuous_ss_forward_euler(
-        model: &ContinuousStateSpaceModel,
-        sampling_dt: f64,
-    ) -> DiscreteStateSpaceModel {
-        Self::from_continuous_matrix_forward_euler(
-            model.mat_a(),
-            model.mat_b(),
-            model.mat_c(),
-            model.mat_d(),
+        Self::from_continuous_matrix_forward_euler_checked(
+            mat_ac,
+            mat_bc,
+            mat_cc,
+            mat_dc,
             sampling_dt,
         )
+        .expect("forward Euler discretization failed")
     }
 }
 
@@ -330,16 +485,18 @@ impl Pole for DiscreteStateSpaceModel {
 
 impl Discrete for DiscreteStateSpaceModel {
     fn sampling_dt(&self) -> f64 {
-        return self.sampling_dt;
+        self.sampling_dt
     }
 }
 
+#[cfg(test)]
 struct TransferFunction {
     numerator_coeffs: Vec<f64>,
     denominator_coeffs: Vec<f64>,
     constant: f64,
 }
 
+#[cfg(test)]
 impl TransferFunction {
     fn new(
         numerator_coeffs: &[f64],
@@ -349,33 +506,138 @@ impl TransferFunction {
         TransferFunction {
             numerator_coeffs: numerator_coeffs.to_vec(),
             denominator_coeffs: denominator_coeffs.to_vec(),
-            constant: constant,
+            constant,
         }
     }
 }
 
+fn validate_sampling_dt(sampling_dt: f64) -> Result<(), ModelError> {
+    if !sampling_dt.is_finite() || sampling_dt <= 0.0 {
+        return Err(ModelError::InvalidSamplingDt(sampling_dt));
+    }
+
+    Ok(())
+}
+
+fn validate_state_space_dimensions(
+    mat_a: &na::DMatrix<f64>,
+    mat_b: &na::DMatrix<f64>,
+    mat_c: &na::DMatrix<f64>,
+    mat_d: &na::DMatrix<f64>,
+) -> Result<(), ModelError> {
+    if !mat_a.is_square() {
+        return Err(ModelError::MatrixANotSquare {
+            rows: mat_a.nrows(),
+            cols: mat_a.ncols(),
+        });
+    }
+
+    let n_states = mat_a.nrows();
+    let n_inputs = mat_b.ncols();
+    let n_outputs = mat_c.nrows();
+
+    if mat_b.nrows() != n_states
+        || mat_c.ncols() != n_states
+        || mat_d.nrows() != n_outputs
+        || mat_d.ncols() != n_inputs
+    {
+        return Err(ModelError::DimensionMismatch {
+            a: mat_a.shape(),
+            b: mat_b.shape(),
+            c: mat_c.shape(),
+            d: mat_d.shape(),
+        });
+    }
+
+    Ok(())
+}
+
+fn matrix_exponential(mat: &na::DMatrix<f64>) -> na::DMatrix<f64> {
+    let n = mat.nrows();
+    if n == 0 {
+        return na::DMatrix::<f64>::zeros(0, 0);
+    }
+
+    let norm_one = max_column_sum_norm(mat);
+    let scaling_power = if norm_one <= 0.5 {
+        0
+    } else {
+        (norm_one.log2().ceil().max(0.0) as u32) + 1
+    };
+
+    let scale = 2f64.powi(scaling_power as i32);
+    let scaled = mat / scale;
+
+    let identity = na::DMatrix::<f64>::identity(n, n);
+    let mut result = identity.clone();
+    let mut term = identity;
+
+    for k in 1..=64 {
+        term = (&term * &scaled) / (k as f64);
+        result += &term;
+
+        let max_abs = term.iter().fold(0.0f64, |acc, v| acc.max(v.abs()));
+        if max_abs < 1e-14 {
+            break;
+        }
+    }
+
+    let mut out = result;
+    for _ in 0..scaling_power {
+        out = &out * &out;
+    }
+
+    out
+}
+
+fn max_column_sum_norm(mat: &na::DMatrix<f64>) -> f64 {
+    (0..mat.ncols())
+        .map(|col| {
+            (0..mat.nrows())
+                .map(|row| mat[(row, col)].abs())
+                .sum::<f64>()
+        })
+        .fold(0.0f64, f64::max)
+}
+
 #[cfg(test)]
-/// This module contains unit tests for the control system models.
-///
-/// # Tests
-///
-/// - `test_compute_state_space_model_nominal`: Tests the construction of a continuous state-space model in controllable canonical form from a transfer function and verifies the matrices A, B, C, and D.
-/// - `test_compute_poles_pure_real`: Tests the computation of poles for a discrete state-space model with purely real eigenvalues.
-/// - `test_compute_poles_pure_im`: Tests the computation of poles for a discrete state-space model with purely imaginary eigenvalues.
-/// - `test_compute_poles_real_and_imaginary_part`: Tests the computation of poles for a discrete state-space model with both real and imaginary parts.
-/// - `test_compute_controllability_matrix_nominal`: Tests the computation of the controllability matrix for a given state-space model.
-/// - `test_controllability_2x2_controllable`: Tests the controllability of a 2x2 discrete state-space model that is controllable.
-/// - `test_controllability_3x3_not_controllable`: Tests the controllability of a 3x3 discrete state-space model that is not controllable.
 mod tests {
     use super::*;
+
+    fn approx_eq_matrix(a: &na::DMatrix<f64>, b: &na::DMatrix<f64>, tol: f64) {
+        assert_eq!(a.shape(), b.shape());
+        for i in 0..a.nrows() {
+            for j in 0..a.ncols() {
+                assert!(
+                    (a[(i, j)] - b[(i, j)]).abs() <= tol,
+                    "mismatch at ({i},{j}): {} != {}",
+                    a[(i, j)],
+                    b[(i, j)]
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn test_try_from_matrices_dimension_validation() {
+        let err = DiscreteStateSpaceModel::try_from_matrices(
+            &na::dmatrix![1.0, 0.0; 0.0, 1.0],
+            &na::dmatrix![1.0; 0.0],
+            &na::dmatrix![1.0, 0.0],
+            &na::dmatrix![0.0, 0.0],
+            0.1,
+        )
+        .unwrap_err();
+
+        assert!(matches!(err, ModelError::DimensionMismatch { .. }));
+    }
 
     #[test]
     fn test_compute_state_space_model_nominal() {
         let tf = TransferFunction::new(&[1.0, 2.0, 3.0], &[1.0, 4.0, 6.0], 8.0);
 
-        let ss_model = ContinuousStateSpaceModel::build_controllable_canonical_form(&tf);
+        let ss_model = ContinuousStateSpaceModel::build_controllable_canonical_form(&tf).unwrap();
 
-        // Check mat A
         assert_eq!(ss_model.mat_a().shape(), (3, 3));
         assert_eq!(ss_model.mat_a()[(2, 0)], -6.0f64);
         assert_eq!(ss_model.mat_a()[(2, 1)], -4.0f64);
@@ -383,30 +645,94 @@ mod tests {
         assert_eq!(ss_model.mat_a()[(0, 1)], 1.0f64);
         assert_eq!(ss_model.mat_a()[(1, 2)], 1.0f64);
 
-        // Check mat B
         assert_eq!(ss_model.mat_b().shape(), (3, 1));
         assert_eq!(ss_model.mat_b()[(0, 0)], 0.0f64);
         assert_eq!(ss_model.mat_b()[(1, 0)], 0.0f64);
         assert_eq!(ss_model.mat_b()[(2, 0)], 1.0f64);
 
-        // Check mat C
-        assert_eq!(ss_model.mat_c().shape(), (3, 1));
+        assert_eq!(ss_model.mat_c().shape(), (1, 3));
         assert_eq!(ss_model.mat_c()[(0, 0)], 3.0f64);
-        assert_eq!(ss_model.mat_c()[(1, 0)], 2.0f64);
-        assert_eq!(ss_model.mat_c()[(2, 0)], 1.0f64);
+        assert_eq!(ss_model.mat_c()[(0, 1)], 2.0f64);
+        assert_eq!(ss_model.mat_c()[(0, 2)], 1.0f64);
 
-        // Check mat D
         assert_eq!(ss_model.mat_d().shape(), (1, 1));
         assert_eq!(ss_model.mat_d()[(0, 0)], 8.0f64);
     }
 
     #[test]
+    fn test_discretization_forward_euler_first_order() {
+        let a = na::dmatrix![-2.0];
+        let b = na::dmatrix![1.0];
+        let c = na::dmatrix![1.0];
+        let d = na::dmatrix![0.0];
+        let dt = 0.1;
+
+        let model = DiscreteStateSpaceModel::from_continuous_matrix_forward_euler_checked(
+            &a, &b, &c, &d, dt,
+        )
+        .unwrap();
+
+        approx_eq_matrix(model.mat_a(), &na::dmatrix![0.8], 1e-12);
+        approx_eq_matrix(model.mat_b(), &na::dmatrix![0.1], 1e-12);
+    }
+
+    #[test]
+    fn test_discretization_backward_euler_first_order() {
+        let a = na::dmatrix![-2.0];
+        let b = na::dmatrix![1.0];
+        let c = na::dmatrix![1.0];
+        let d = na::dmatrix![0.0];
+        let dt = 0.1;
+
+        let model =
+            DiscreteStateSpaceModel::from_continuous_matrix_backward_euler(&a, &b, &c, &d, dt)
+                .unwrap();
+
+        approx_eq_matrix(model.mat_a(), &na::dmatrix![1.0 / 1.2], 1e-12);
+        approx_eq_matrix(model.mat_b(), &na::dmatrix![dt / 1.2], 1e-12);
+    }
+
+    #[test]
+    fn test_discretization_tustin_first_order() {
+        let a = na::dmatrix![-2.0];
+        let b = na::dmatrix![1.0];
+        let c = na::dmatrix![1.0];
+        let d = na::dmatrix![0.0];
+        let dt = 0.1;
+
+        let model =
+            DiscreteStateSpaceModel::from_continuous_matrix_tustin(&a, &b, &c, &d, dt).unwrap();
+
+        approx_eq_matrix(model.mat_a(), &na::dmatrix![0.8181818181818182], 1e-12);
+        approx_eq_matrix(model.mat_b(), &na::dmatrix![0.09090909090909091], 1e-12);
+    }
+
+    #[test]
+    fn test_discretization_zoh_first_order() {
+        let a = na::dmatrix![-2.0];
+        let b = na::dmatrix![1.0];
+        let c = na::dmatrix![1.0];
+        let d = na::dmatrix![0.0];
+        let dt = 0.1;
+
+        let model =
+            DiscreteStateSpaceModel::from_continuous_matrix_zoh(&a, &b, &c, &d, dt).unwrap();
+
+        let ad = (-2.0f64 * dt).exp();
+        let bd = (1.0 - ad) / 2.0;
+
+        approx_eq_matrix(model.mat_a(), &na::dmatrix![ad], 1e-10);
+        approx_eq_matrix(model.mat_b(), &na::dmatrix![bd], 1e-10);
+    }
+
+    #[test]
     fn test_compute_poles_pure_real() {
+        #[allow(deprecated)]
         let ss_model = DiscreteStateSpaceModel::from_matrices(
             &nalgebra::dmatrix![2.0, 0.0; 0.0, 1.0],
-            &nalgebra::dmatrix![],
-            &nalgebra::dmatrix![],
-            &nalgebra::dmatrix![],
+            &nalgebra::dmatrix![0.0; 0.0],
+            &nalgebra::dmatrix![0.0, 0.0],
+            &nalgebra::dmatrix![0.0],
             0.05,
         );
 
@@ -421,11 +747,12 @@ mod tests {
 
     #[test]
     fn test_compute_poles_pure_im() {
+        #[allow(deprecated)]
         let ss_model = DiscreteStateSpaceModel::from_matrices(
             &nalgebra::dmatrix![0.0, -1.0; 1.0, 0.0],
-            &nalgebra::dmatrix![],
-            &nalgebra::dmatrix![],
-            &nalgebra::dmatrix![],
+            &nalgebra::dmatrix![0.0; 0.0],
+            &nalgebra::dmatrix![0.0, 0.0],
+            &nalgebra::dmatrix![0.0],
             0.05,
         );
 
@@ -440,11 +767,12 @@ mod tests {
 
     #[test]
     fn test_compute_poles_real_and_imaginary_part() {
+        #[allow(deprecated)]
         let ss_model = DiscreteStateSpaceModel::from_matrices(
             &nalgebra::dmatrix![1.0, -2.0; 2.0, 1.0],
-            &nalgebra::dmatrix![],
-            &nalgebra::dmatrix![],
-            &nalgebra::dmatrix![],
+            &nalgebra::dmatrix![0.0; 0.0],
+            &nalgebra::dmatrix![0.0, 0.0],
+            &nalgebra::dmatrix![0.0],
             0.05,
         );
 
