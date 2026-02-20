@@ -209,6 +209,17 @@ mod tests {
         .unwrap()
     }
 
+    fn integrator_siso_model() -> DiscreteStateSpaceModel {
+        DiscreteStateSpaceModel::try_from_matrices(
+            &na::dmatrix![1.0],
+            &na::dmatrix![1.0],
+            &na::dmatrix![1.0],
+            &na::dmatrix![0.0],
+            1.0,
+        )
+        .unwrap()
+    }
+
     // Verifies simulation output includes direct feedthrough term D*u.
     #[test]
     fn test_simulate_includes_feedthrough_term() {
@@ -282,6 +293,39 @@ mod tests {
         let model = first_order_siso_model_with_d();
         let (y, _u, _x) = step_for_discrete_ss(&model, 0.05).unwrap();
         assert_eq!(y.ncols(), 0);
+    }
+
+    // Verifies nominal step simulation values for a simple integrator model. x accumulates the input and y is equal to the beginning of x.
+    #[test]
+    fn test_step_response_nominal_values() {
+        let model = integrator_siso_model();
+        let (y, u, x) = step_for_discrete_ss(&model, 3.0).unwrap();
+
+        assert_eq!(u, na::dmatrix![1.0, 1.0, 1.0]);
+        assert_eq!(y, na::dmatrix![0.0, 1.0, 2.0]);
+        assert_eq!(x, na::dmatrix![0.0, 1.0, 2.0, 3.0]);
+    }
+
+    // Verifies nominal impulse simulation values for a simple integrator model.
+    #[test]
+    fn test_impulse_response_nominal_values() {
+        let model = integrator_siso_model();
+        let (y, u, x) = impulse_for_discrete_ss(&model, 3.0).unwrap();
+
+        assert_eq!(u, na::dmatrix![1.0, 0.0, 0.0]);
+        assert_eq!(y, na::dmatrix![0.0, 1.0, 1.0]);
+        assert_eq!(x, na::dmatrix![0.0, 1.0, 1.0, 1.0]);
+    }
+
+    // Verifies nominal ramp simulation values for a simple integrator model.
+    #[test]
+    fn test_ramp_response_nominal_values() {
+        let model = integrator_siso_model();
+        let (y, u, x) = ramp_for_discrete_ss(&model, 3.0).unwrap();
+
+        assert_eq!(u, na::dmatrix![0.0, 1.0, 2.0]);
+        assert_eq!(y, na::dmatrix![0.0, 0.0, 1.0]);
+        assert_eq!(x, na::dmatrix![0.0, 0.0, 1.0, 3.0]);
     }
 
     // Verifies simulation fails when input row count does not match B.ncols().
@@ -380,5 +424,4 @@ mod tests {
             Err(SimulationError::Model(ModelError::InvalidSamplingDt(dt))) if dt.is_infinite()
         ));
     }
-
 }
