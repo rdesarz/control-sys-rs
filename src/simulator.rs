@@ -284,4 +284,101 @@ mod tests {
         assert_eq!(y.ncols(), 0);
     }
 
+    // Verifies simulation fails when input row count does not match B.ncols().
+    #[test]
+    fn test_simulate_input_dimension_mismatch() {
+        let model = first_order_siso_model_with_d();
+        let bad_u = na::dmatrix![1.0, 1.0; 1.0, 1.0];
+        let x0 = na::dvector![0.0];
+
+        let result = simulate(&model, &bad_u, &x0);
+        assert!(matches!(
+            result,
+            Err(SimulationError::DimensionMismatch {
+                expected_u_rows: 1,
+                actual_u_rows: 2,
+                expected_x0_rows: 1,
+                actual_x0_rows: 1
+            })
+        ));
+    }
+
+    // Verifies simulation fails when x0 length does not match A.nrows().
+    #[test]
+    fn test_simulate_state_dimension_mismatch() {
+        let model = first_order_siso_model_with_d();
+        let u = na::dmatrix![1.0, 1.0];
+        let bad_x0 = na::dvector![0.0, 0.0];
+
+        let result = simulate(&model, &u, &bad_x0);
+        assert!(matches!(
+            result,
+            Err(SimulationError::DimensionMismatch {
+                expected_u_rows: 1,
+                actual_u_rows: 1,
+                expected_x0_rows: 1,
+                actual_x0_rows: 2
+            })
+        ));
+    }
+
+    // Verifies negative duration is rejected for step response.
+    #[test]
+    fn test_step_negative_duration_error() {
+        let model = first_order_siso_model_with_d();
+        let result = step_for_discrete_ss(&model, -1.0);
+        assert!(matches!(
+            result,
+            Err(SimulationError::InvalidDuration(d)) if (d + 1.0).abs() < 1e-12
+        ));
+    }
+
+    // Verifies negative duration is rejected for impulse response.
+    #[test]
+    fn test_impulse_negative_duration_error() {
+        let model = first_order_siso_model_with_d();
+        let result = impulse_for_discrete_ss(&model, -0.5);
+        assert!(matches!(
+            result,
+            Err(SimulationError::InvalidDuration(d)) if (d + 0.5).abs() < 1e-12
+        ));
+    }
+
+    // Verifies negative duration is rejected for ramp response.
+    #[test]
+    fn test_ramp_negative_duration_error() {
+        let model = first_order_siso_model_with_d();
+        let result = ramp_for_discrete_ss(&model, -0.25);
+        assert!(matches!(
+            result,
+            Err(SimulationError::InvalidDuration(d)) if (d + 0.25).abs() < 1e-12
+        ));
+    }
+
+    // Verifies invalid sampling periods are rejected in time vector helper.
+    #[test]
+    fn test_time_vector_invalid_sampling_dt() {
+        let zero = time_vector(0.0, 10);
+        let negative = time_vector(-0.1, 10);
+        let nan = time_vector(f64::NAN, 10);
+        let inf = time_vector(f64::INFINITY, 10);
+
+        assert!(matches!(
+            zero,
+            Err(SimulationError::Model(ModelError::InvalidSamplingDt(dt))) if dt == 0.0
+        ));
+        assert!(matches!(
+            negative,
+            Err(SimulationError::Model(ModelError::InvalidSamplingDt(dt))) if (dt + 0.1).abs() < 1e-12
+        ));
+        assert!(matches!(
+            nan,
+            Err(SimulationError::Model(ModelError::InvalidSamplingDt(dt))) if dt.is_nan()
+        ));
+        assert!(matches!(
+            inf,
+            Err(SimulationError::Model(ModelError::InvalidSamplingDt(dt))) if dt.is_infinite()
+        ));
+    }
+
 }
