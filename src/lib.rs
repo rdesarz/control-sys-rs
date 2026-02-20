@@ -43,9 +43,6 @@ Recommended default is ZOH for sampled-data systems driven by held inputs.
 /// Methods to analyze control systems.
 pub mod analysis;
 
-/// Methods and structs to create controllers.
-pub mod controller;
-
 /// Structures to represent control systems.
 pub mod model;
 
