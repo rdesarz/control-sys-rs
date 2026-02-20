@@ -2,159 +2,61 @@
 
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/rdesarz/control-sys-rs/rust.yml)
 
-**control-sys** is a control system library written in Rust. It implements tools to represent and analyze LTI systems using state-space model.
+**control-sys** is a Rust library to represent, analyze, simulate, and control LTI systems using state-space models.
 
-## Examples
+## Highlights
 
-### Continuous state space model
+- Checked model constructors with typed errors (`ModelError`)
+- Continuous-to-discrete conversion with explicit methods:
+  - ZOH
+  - Forward Euler
+  - Backward Euler
+  - Tustin
+- Time-domain simulation with full output equation `y = Cx + Du`
+- Controllability and observability analysis
+- Stability checks and rank diagnostics
+- Controller helpers:
+  - SISO pole placement
+  - Discrete LQR
+  - Continuous LQR approximation
+  - Closed-loop assembly (`A-BK`)
 
-A continuous state space model can be defined with `ContinuousStateSpaceModel`. As an example, a state-space model representing a DC motor can be defined this way. We are using `nalgebra` to represent the matrices: 
-
-```rust
-use nalgebra as na;
-use control_sys::model;
-
-// DC motor parameters
-let b = 0.1f64;
-let j = 0.01f64;
-let k = 0.01f64;
-let l = 0.5f64;
-let r = 1.0f64;
-
-let mat_ac = na::dmatrix![
-        -b / j, k / j;
-        -k / l, -r / l;
-    ];
-let mat_bc = na::dmatrix![0.0; 
-                          1.0 / l];
-let mat_cc = na::dmatrix![1.0, 0.0];
-
-let cont_model = model::ContinuousStateSpaceModel::from_matrices(&mat_ac, &mat_bc, &mat_cc, &na::dmatrix![]);
-```
-
-### Continuous to discrete model conversion
-
-A `DiscreteStateSpaceModel` can be built from a continuous one. You then need to specify the sampling step `ts`: 
+## Example: End-to-End Workflow
 
 ```rust
+use control_sys::{analysis, model, simulator};
 use nalgebra as na;
-use control_sys::model;
 
-// DC motor parameters
-let b = 0.1f64;
-let j = 0.01f64;
-let k = 0.01f64;
-let l = 0.5f64;
-let r = 1.0f64;
+let a = na::dmatrix![0.0, 1.0; -2.0, -3.0];
+let b = na::dmatrix![0.0; 1.0];
+let c = na::dmatrix![1.0, 0.0];
+let d = na::dmatrix![0.0];
 
-let mat_ac = na::dmatrix![
-        -b / j, k / j;
-        -k / l, -r / l;
-    ];
-let mat_bc = na::dmatrix![0.0; 
-                          1.0 / l];
-let mat_cc = na::dmatrix![1.0, 0.0];
+let cont = model::ContinuousStateSpaceModel::try_from_matrices(&a, &b, &c, &d).unwrap();
+let disc = model::DiscreteStateSpaceModel::from_continuous_zoh(&cont, 0.05).unwrap();
 
-let cont_model = model::ContinuousStateSpaceModel::from_matrices(&mat_ac, &mat_bc, &mat_cc, &na::dmatrix![]);
+let (y, u, _x) = simulator::step_for_discrete_ss(&disc, 5.0).unwrap();
+assert_eq!(y.nrows(), 1);
+assert_eq!(u.nrows(), 1);
 
-let discrete_model = 
-    model::DiscreteStateSpaceModel::from_continuous_ss_forward_euler(&cont_model, 0.05);
+let (is_ctrb, _ctrb_mat) = analysis::is_ss_controllable(&disc);
+assert!(is_ctrb);
 ```
 
-### Step response 
+## Discretization Methods and Assumptions
 
-You can compute the step response of a system. For a discrete system, the simulation steps are given by the sampling step of the discretization:
+`DiscreteStateSpaceModel` has explicit conversion methods:
 
-```rust
-use nalgebra as na;
-use control_sys::{model, simulator};
+- `from_continuous_zoh`: exact ZOH (recommended default)
+- `from_continuous_forward_euler`: explicit Euler
+- `from_continuous_backward_euler`: implicit Euler
+- `from_continuous_tustin`: bilinear transform
 
-// DC motor parameters
-let b = 0.1f64;
-let j = 0.01f64;
-let k = 0.01f64;
-let l = 0.5f64;
-let r = 1.0f64;
+Use ZOH unless you explicitly need the numerical behavior of a different method.
 
-let mat_ac = na::dmatrix![
-        -b / j, k / j;
-        -k / l, -r / l;
-    ];
-let mat_bc = na::dmatrix![0.0; 
-                          1.0 / l];
-let mat_cc = na::dmatrix![1.0, 0.0];
+## Running checks
 
-let cont_model = model::ContinuousStateSpaceModel::from_matrices(&mat_ac, &mat_bc, &mat_cc, &na::dmatrix![]);
-
-let discrete_model = 
-    model::DiscreteStateSpaceModel::from_continuous_ss_forward_euler(&cont_model, 0.05);
-
-// where model implements the traits `StateSpaceModel` and `Discrete`
-let duration = 10.0; // [s]
-let (response, input, states) = simulator::step_for_discrete_ss(
-        &discrete_model,
-        duration,
-    );
+```bash
+cargo test
+cargo clippy --all-targets --all-features -- -D warnings
 ```
-
-You can also compute the step response for a continuous model. You will need to provide the sampling step and the model will be discretized before computing the step response:
-
-```rust
-use nalgebra as na;
-use control_sys::{model, simulator};
-
-// DC motor parameters
-let b = 0.1f64;
-let j = 0.01f64;
-let k = 0.01f64;
-let l = 0.5f64;
-let r = 1.0f64;
-
-let mat_ac = na::dmatrix![
-        -b / j, k / j;
-        -k / l, -r / l;
-    ];
-let mat_bc = na::dmatrix![0.0; 
-                          1.0 / l];
-let mat_cc = na::dmatrix![1.0, 0.0];
-
-let cont_model = model::ContinuousStateSpaceModel::from_matrices(&mat_ac, &mat_bc, &mat_cc, &na::dmatrix![]);
-
-// where model is a continuous state space model
-let sampling_dt = 0.05; // [s]
-let duration = 10.0; // [s]
-let (response, input, states) = simulator::step_for_continuous_ss(
-        &cont_model,
-        sampling_dt,
-        duration,
-    );
-```
-
-### Controllability 
-
-The controllability of a system can be evaluated using the `is_ss_controllable` method:
-
-```rust
-use nalgebra as na;
-use control_sys::{model, analysis};
-
-let ss_model = model::DiscreteStateSpaceModel::from_matrices(
-        &nalgebra::dmatrix![1.0, -2.0; 
-                            2.0, 1.0],
-        &nalgebra::dmatrix![1.0;
-                            2.0],
-        &nalgebra::dmatrix![],
-        &nalgebra::dmatrix![],
-        0.05,
-    );
-
-let (is_controllable, controllability_matrix) = analysis::is_ss_controllable(&ss_model);
-
-if is_controllable
-{
-    println!("The system is controllable");
-    println!("Its controllability matrix is: {}", controllability_matrix);
-}
-```
-
-
