@@ -1,3 +1,5 @@
+// Step-response plotting example:
+// Build a DC motor model, simulate a unit-step input, and export a plot to img/step_response.png.
 use control_sys::model::Pole;
 use control_sys::simulator;
 

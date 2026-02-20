@@ -1,3 +1,8 @@
+// End-to-end workflow:
+// 1) Build a continuous model.
+// 2) Discretize with ZOH.
+// 3) Run a step simulation.
+// 4) Check controllability.
 use control_sys::{analysis, model, simulator};
 use nalgebra as na;
 
