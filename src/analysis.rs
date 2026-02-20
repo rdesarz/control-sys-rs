@@ -40,6 +40,7 @@ pub struct LtiAnalysisReport {
 }
 
 /// Computes the controllability matrix `[B, AB, ..., A^(n-1)B]`.
+#[allow(clippy::toplevel_ref_arg)]
 pub fn compute_controllability_matrix(
     mat_a: &na::DMatrix<f64>,
     mat_b: &na::DMatrix<f64>,
@@ -83,6 +84,7 @@ pub fn is_ss_controllable<T: StateSpaceModel>(model: &T) -> (bool, na::DMatrix<f
 }
 
 /// Computes the observability matrix `[C; CA; ...; CA^(n-1)]`.
+#[allow(clippy::toplevel_ref_arg)]
 pub fn compute_observability_matrix(
     mat_a: &na::DMatrix<f64>,
     mat_c: &na::DMatrix<f64>,
@@ -239,6 +241,7 @@ mod tests {
     use crate::model::DiscreteStateSpaceModel;
 
     // Verifies controllability matrix construction for a nominal 2x2 system.
+    #[allow(clippy::toplevel_ref_arg)]
     #[test]
     fn test_compute_controllability_matrix_2x2() {
         let mat_a = nalgebra::dmatrix![1.0, -2.0;
@@ -309,6 +312,7 @@ mod tests {
     }
 
     // Verifies observability matrix construction for a nominal 2x2 system.
+    #[allow(clippy::toplevel_ref_arg)]
     #[test]
     fn test_compute_observability_matrix_2x2() {
         let mat_a = nalgebra::dmatrix![1.0, -2.0;
