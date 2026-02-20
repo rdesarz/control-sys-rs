@@ -1,3 +1,29 @@
+//! Controller synthesis utilities.
+//!
+//! This module currently provides:
+//!
+//! - Closed-loop assembly for state feedback (`A_cl = A - B K`)
+//! - SISO pole placement (Ackermann formula)
+//! - Discrete-time LQR (iterative DARE solve)
+//! - Continuous-time LQR approximation (Tustin discretization + discrete LQR)
+//! - SISO reference prefilter gain (`Nbar`)
+//!
+//! # References
+//!
+//! - Ackermann / pole placement:
+//!   - <https://gnu-octave.github.io/pkg-control/acker.html>
+//!   - <https://python-control.readthedocs.io/en/0.10.2/generated/control.place_acker.html>
+//! - DARE / discrete LQR:
+//!   - <https://docs.scipy.org/doc/scipy/reference/generated/scipy.linalg.solve_discrete_are.html>
+//!   - <https://python-control.readthedocs.io/en/0.9.4/generated/control.dlqr.html>
+//! - CARE / continuous LQR context:
+//!   - <https://docs.scipy.org/doc/scipy-1.15.2/reference/generated/scipy.linalg.solve_continuous_are.html>
+//! - Bilinear (Tustin) transform:
+//!   - <https://docs.scipy.org/doc/scipy/reference/generated/scipy.signal.cont2discrete.html>
+//!   - <https://www.mathworks.com/help/signal/ref/bilinear.html>
+//! - Reference prefilter scaling (`Nbar` concept):
+//!   - <https://www3.diism.unisi.it/~control/ctm/extras/rscale.html>
+//!
 extern crate nalgebra as na;
 
 use crate::analysis::compute_controllability_matrix;
@@ -45,6 +71,11 @@ impl From<ModelError> for ControlError {
 }
 
 /// Builds a closed-loop state matrix `A_cl = A - B*K` for `u = -Kx`.
+///
+/// The closed-loop dynamics are:
+///
+/// - Continuous time: `x_dot = (A - B K) x`
+/// - Discrete time: `x[k+1] = (A - B K) x[k]`
 pub fn closed_loop(
     mat_a: &na::DMatrix<f64>,
     mat_b: &na::DMatrix<f64>,
@@ -73,6 +104,16 @@ pub fn closed_loop(
 /// SISO pole placement via Ackermann's formula.
 ///
 /// `desired_poles` are real roots for a system of order `n`.
+///
+/// Uses the classic formula:
+///
+/// `K = e_n^T * C^{-1} * phi(A)`
+///
+/// where:
+///
+/// - `C = [B, A B, ..., A^(n-1) B]` is the controllability matrix
+/// - `phi(s)` is the desired characteristic polynomial
+/// - `e_n^T = [0, ..., 0, 1]`
 pub fn pole_placement_siso(
     mat_a: &na::DMatrix<f64>,
     mat_b: &na::DMatrix<f64>,
@@ -111,6 +152,18 @@ pub fn pole_placement_siso(
 }
 
 /// Discrete-time LQR using an iterative DARE solve.
+///
+/// Minimizes:
+///
+/// `J = sum_{k=0..inf} (x_k^T Q x_k + u_k^T R u_k)` with `u_k = -K x_k`
+///
+/// by iterating:
+///
+/// `P_{k+1} = A^T P_k A - A^T P_k B (R + B^T P_k B)^-1 B^T P_k A + Q`
+///
+/// and returning:
+///
+/// `K = (R + B^T P B)^-1 B^T P A`
 pub fn discrete_lqr(
     mat_a: &na::DMatrix<f64>,
     mat_b: &na::DMatrix<f64>,
@@ -176,6 +229,13 @@ pub fn discrete_lqr(
 /// Continuous-time LQR approximation by Tustin discretization + discrete LQR.
 ///
 /// This method is pragmatic and does not solve CARE exactly.
+///
+/// Continuous dynamics are first mapped to discrete form:
+///
+/// `A_d = (I - A*dt/2)^-1 (I + A*dt/2)`
+/// `B_d = (I - A*dt/2)^-1 (dt * B)`
+///
+/// Then discrete LQR is solved on `(A_d, B_d, Q*dt, R*dt)`.
 pub fn continuous_lqr(
     mat_a: &na::DMatrix<f64>,
     mat_b: &na::DMatrix<f64>,
@@ -212,6 +272,14 @@ pub fn continuous_lqr(
 }
 
 /// Computes SISO reference prefilter `Nbar` for `u = -Kx + Nbar*r`.
+///
+/// For SISO systems (and the assumptions of this helper), it computes:
+///
+/// `gain_dc = -C (A - B K)^-1 B`
+/// `Nbar = 1 / gain_dc`
+///
+/// so a step reference can be tracked with zero steady-state offset when the
+/// closed-loop DC gain is non-zero.
 pub fn siso_reference_prefilter(
     mat_a: &na::DMatrix<f64>,
     mat_b: &na::DMatrix<f64>,
@@ -238,6 +306,8 @@ pub fn siso_reference_prefilter(
 }
 
 /// Closed-loop helper for `StateSpaceModel` implementors.
+///
+/// Equivalent to calling [`closed_loop`] with `model.mat_a()` and `model.mat_b()`.
 pub fn closed_loop_from_model<T: StateSpaceModel>(
     model: &T,
     mat_k: &na::DMatrix<f64>,
