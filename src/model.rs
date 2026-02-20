@@ -618,6 +618,7 @@ mod tests {
         }
     }
 
+    // Verifies checked constructors reject incompatible A/B/C/D dimensions.
     #[test]
     fn test_try_from_matrices_dimension_validation() {
         let err = DiscreteStateSpaceModel::try_from_matrices(
@@ -632,6 +633,7 @@ mod tests {
         assert!(matches!(err, ModelError::DimensionMismatch { .. }));
     }
 
+    // Verifies controllable canonical form matrices for a nominal transfer function.
     #[test]
     fn test_compute_state_space_model_nominal() {
         let tf = TransferFunction::new(&[1.0, 2.0, 3.0], &[1.0, 4.0, 6.0], 8.0);
@@ -659,6 +661,7 @@ mod tests {
         assert_eq!(ss_model.mat_d()[(0, 0)], 8.0f64);
     }
 
+    // Verifies forward Euler discretization against first-order analytic values.
     #[test]
     fn test_discretization_forward_euler_first_order() {
         let a = na::dmatrix![-2.0];
@@ -676,6 +679,7 @@ mod tests {
         approx_eq_matrix(model.mat_b(), &na::dmatrix![0.1], 1e-12);
     }
 
+    // Verifies backward Euler discretization against first-order analytic values.
     #[test]
     fn test_discretization_backward_euler_first_order() {
         let a = na::dmatrix![-2.0];
@@ -692,6 +696,7 @@ mod tests {
         approx_eq_matrix(model.mat_b(), &na::dmatrix![dt / 1.2], 1e-12);
     }
 
+    // Verifies Tustin discretization against first-order analytic values.
     #[test]
     fn test_discretization_tustin_first_order() {
         let a = na::dmatrix![-2.0];
@@ -707,6 +712,7 @@ mod tests {
         approx_eq_matrix(model.mat_b(), &na::dmatrix![0.09090909090909091], 1e-12);
     }
 
+    // Verifies ZOH discretization against first-order exact discretization values.
     #[test]
     fn test_discretization_zoh_first_order() {
         let a = na::dmatrix![-2.0];
@@ -725,6 +731,7 @@ mod tests {
         approx_eq_matrix(model.mat_b(), &na::dmatrix![bd], 1e-10);
     }
 
+    // Verifies pole computation for a model with purely real poles.
     #[test]
     fn test_compute_poles_pure_real() {
         #[allow(deprecated)]
@@ -745,6 +752,7 @@ mod tests {
         assert_eq!(poles[1].im, 0.0);
     }
 
+    // Verifies pole computation for a model with purely imaginary poles.
     #[test]
     fn test_compute_poles_pure_im() {
         #[allow(deprecated)]
@@ -765,6 +773,7 @@ mod tests {
         assert_eq!(poles[1].im, -1.0);
     }
 
+    // Verifies pole computation for a model with complex-conjugate poles.
     #[test]
     fn test_compute_poles_real_and_imaginary_part() {
         #[allow(deprecated)]
