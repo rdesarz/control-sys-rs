@@ -29,10 +29,6 @@ name = "controllability"
 path = "examples/controllability.rs"
 
 [[example]]
-name = "lqr"
-path = "examples/lqr.rs"
-
-[[example]]
 name = "end_to_end"
 path = "examples/end_to_end.rs"
 
