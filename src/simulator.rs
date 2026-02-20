@@ -97,11 +97,13 @@ pub fn simulate(
     Ok((mat_y, mat_x))
 }
 
+type ResponseInputState = (na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>);
+
 /// Generates a unit-step response of a discrete state-space model.
 pub fn step_for_discrete_ss(
     model: &(impl StateSpaceModel + Discrete),
     duration: f64,
-) -> Result<(na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>), SimulationError> {
+) -> Result<ResponseInputState, SimulationError> {
     if !duration.is_finite() || duration < 0.0 {
         return Err(SimulationError::InvalidDuration(duration));
     }
@@ -121,7 +123,7 @@ pub fn step_for_continuous_ss(
     model: &ContinuousStateSpaceModel,
     sampling_dt: f64,
     duration: f64,
-) -> Result<(na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>), SimulationError> {
+) -> Result<ResponseInputState, SimulationError> {
     let discrete_model = DiscreteStateSpaceModel::from_continuous_zoh(model, sampling_dt)?;
 
     step_for_discrete_ss(&discrete_model, duration)
@@ -131,7 +133,7 @@ pub fn step_for_continuous_ss(
 pub fn impulse_for_discrete_ss(
     model: &(impl StateSpaceModel + Discrete),
     duration: f64,
-) -> Result<(na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>), SimulationError> {
+) -> Result<ResponseInputState, SimulationError> {
     if !duration.is_finite() || duration < 0.0 {
         return Err(SimulationError::InvalidDuration(duration));
     }
@@ -153,7 +155,7 @@ pub fn impulse_for_discrete_ss(
 pub fn ramp_for_discrete_ss(
     model: &(impl StateSpaceModel + Discrete),
     duration: f64,
-) -> Result<(na::DMatrix<f64>, na::DMatrix<f64>, na::DMatrix<f64>), SimulationError> {
+) -> Result<ResponseInputState, SimulationError> {
     if !duration.is_finite() || duration < 0.0 {
         return Err(SimulationError::InvalidDuration(duration));
     }
