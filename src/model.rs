@@ -460,16 +460,34 @@ fn validate_state_space_dimensions(
     Ok(())
 }
 
+/// Computes a matrix exponential using a scaling-and-series strategy.
+///
+/// Algorithm outline:
+///
+/// 1. Compute a matrix norm (`||A||_1`) and choose a power-of-two scale `s` so
+///    `A / 2^s` has smaller norm.
+/// 2. Approximate `exp(A / 2^s)` by truncating the Taylor series
+///    `I + M + M^2/2! + ...`.
+/// 3. Recover `exp(A)` via repeated squaring:
+///    `exp(A) = (exp(A / 2^s))^(2^s)`.
+///
+/// This is a simple implementation intended for moderate matrix sizes in this
+/// library context.
+///
+/// References:
+/// - C. Moler and C. Van Loan, "Nineteen Dubious Ways to Compute the Exponential of a Matrix,
+///   Twenty-Five Years Later", SIAM Review, 45(1), 2003.
 fn matrix_exponential(mat: &na::DMatrix<f64>) -> na::DMatrix<f64> {
     let n = mat.nrows();
     if n == 0 {
         return na::DMatrix::<f64>::zeros(0, 0);
     }
 
-    // Scaling-and-series approximation:
-    // 1) choose a power-of-two scale so ||A/scale|| is small,
-    // 2) evaluate exp(A/scale) by truncated Taylor series,
-    // 3) square the result repeatedly to recover exp(A).
+    // Step 1: choose a power-of-two scaling factor.
+    //
+    // We scale A -> A/2^s so the truncated Taylor series converges rapidly.
+    // Using powers of two makes the reconstruction step exact in structure:
+    // repeated squaring s times gives exponentiation by 2^s.
     let norm_one = max_column_sum_norm(mat);
     let scaling_power = if norm_one <= 0.5 {
         0
@@ -484,7 +502,13 @@ fn matrix_exponential(mat: &na::DMatrix<f64>) -> na::DMatrix<f64> {
     let mut result = identity.clone();
     let mut term = identity;
 
-    // exp(M) = I + M + M^2/2! + M^3/3! + ...
+    // Step 2: evaluate exp(M) with truncated Taylor series, where M = A/2^s.
+    //
+    // Recurrence:
+    // term_k = term_{k-1} * M / k, with term_0 = I.
+    // result = sum_k term_k.
+    //
+    // Stop when the latest term is numerically tiny in max-abs norm.
     for k in 1..=64 {
         term = (&term * &scaled) / (k as f64);
         result += &term;
@@ -495,6 +519,8 @@ fn matrix_exponential(mat: &na::DMatrix<f64>) -> na::DMatrix<f64> {
         }
     }
 
+    // Step 3: undo scaling by repeated squaring.
+    // exp(A) = (exp(A/2^s))^(2^s).
     let mut out = result;
     for _ in 0..scaling_power {
         out = &out * &out;
