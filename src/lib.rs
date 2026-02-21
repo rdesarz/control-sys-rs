@@ -33,7 +33,6 @@ assert!(is_controllable);
 `DiscreteStateSpaceModel` provides explicit conversion APIs:
 
 - `from_continuous_zoh`: exact ZOH using augmented matrix exponential.
-- `from_continuous_tustin`: bilinear transform.
 
 Recommended default is ZOH for sampled-data systems driven by held inputs.
 */

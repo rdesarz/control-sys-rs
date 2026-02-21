@@ -8,7 +8,8 @@
 //! It also provides multiple continuous-to-discrete conversion methods:
 //!
 //! - Exact ZOH (augmented matrix exponential)
-//! - Tustin (bilinear transform)
+//! The library intentionally exposes a small discretization surface for now:
+//! exact ZOH.
 
 extern crate nalgebra as na;
 
@@ -366,36 +367,6 @@ impl DiscreteStateSpaceModel {
         Self::try_from_matrices(&mat_a, &mat_b, mat_cc, mat_dc, sampling_dt)
     }
 
-    /// Discretizes a continuous model using the bilinear/Tustin transform.
-    ///
-    /// This corresponds to:
-    ///
-    /// - `A_d = (I - A*dt/2)^-1 * (I + A*dt/2)`
-    /// - `B_d = (I - A*dt/2)^-1 * B*dt`
-    ///
-    /// It requires inversion of `I - A*dt/2`.
-    pub fn from_continuous_matrix_tustin(
-        mat_ac: &na::DMatrix<f64>,
-        mat_bc: &na::DMatrix<f64>,
-        mat_cc: &na::DMatrix<f64>,
-        mat_dc: &na::DMatrix<f64>,
-        sampling_dt: f64,
-    ) -> Result<DiscreteStateSpaceModel, ModelError> {
-        validate_state_space_dimensions(mat_ac, mat_bc, mat_cc, mat_dc)?;
-        validate_sampling_dt(sampling_dt)?;
-
-        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
-        let left = mat_i.clone() - mat_ac.scale(0.5 * sampling_dt);
-        let inv_left = left
-            .try_inverse()
-            .ok_or(ModelError::SingularMatrix("I - A*dt/2 for Tustin"))?;
-
-        let mat_a = &inv_left * (mat_i + mat_ac.scale(0.5 * sampling_dt));
-        let mat_b = inv_left * mat_bc.scale(sampling_dt);
-
-        Self::try_from_matrices(&mat_a, &mat_b, mat_cc, mat_dc, sampling_dt)
-    }
-
     /// Discretizes a continuous model using exact ZOH.
     ///
     /// See [`DiscreteStateSpaceModel::from_continuous_matrix_zoh`] for equations.
@@ -404,22 +375,6 @@ impl DiscreteStateSpaceModel {
         sampling_dt: f64,
     ) -> Result<DiscreteStateSpaceModel, ModelError> {
         Self::from_continuous_matrix_zoh(
-            model.mat_a(),
-            model.mat_b(),
-            model.mat_c(),
-            model.mat_d(),
-            sampling_dt,
-        )
-    }
-
-    /// Discretizes a continuous model using Tustin.
-    ///
-    /// See [`DiscreteStateSpaceModel::from_continuous_matrix_tustin`] for equations.
-    pub fn from_continuous_tustin(
-        model: &ContinuousStateSpaceModel,
-        sampling_dt: f64,
-    ) -> Result<DiscreteStateSpaceModel, ModelError> {
-        Self::from_continuous_matrix_tustin(
             model.mat_a(),
             model.mat_b(),
             model.mat_c(),
@@ -617,22 +572,6 @@ mod tests {
 
         assert_eq!(ss_model.mat_d().shape(), (1, 1));
         assert_eq!(ss_model.mat_d()[(0, 0)], 8.0f64);
-    }
-
-    // Verifies Tustin discretization against first-order analytic values.
-    #[test]
-    fn test_discretization_tustin_first_order() {
-        let a = na::dmatrix![-2.0];
-        let b = na::dmatrix![1.0];
-        let c = na::dmatrix![1.0];
-        let d = na::dmatrix![0.0];
-        let dt = 0.1;
-
-        let model =
-            DiscreteStateSpaceModel::from_continuous_matrix_tustin(&a, &b, &c, &d, dt).unwrap();
-
-        approx_eq_matrix(model.mat_a(), &na::dmatrix![0.8181818181818182], 1e-12);
-        approx_eq_matrix(model.mat_b(), &na::dmatrix![0.09090909090909091], 1e-12);
     }
 
     // Verifies ZOH discretization against first-order exact discretization values.

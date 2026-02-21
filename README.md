@@ -9,7 +9,6 @@
 - Checked model constructors with typed errors (`ModelError`)
 - Continuous-to-discrete conversion with explicit methods:
   - ZOH
-  - Tustin
 - Time-domain simulation with full output equation `y = Cx + Du`
 - Controllability and observability analysis
 - Stability checks and rank diagnostics
@@ -46,7 +45,6 @@ assert!(is_ctrb);
 `DiscreteStateSpaceModel` has explicit conversion methods:
 
 - `from_continuous_zoh`: exact ZOH (recommended default)
-- `from_continuous_tustin`: bilinear transform
 
 Use ZOH by default for sampled-data systems with held inputs.
 
