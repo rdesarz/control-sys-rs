@@ -329,7 +329,7 @@ impl DiscreteStateSpaceModel {
     }
 
     /// Discretizes a continuous model using explicit forward Euler.
-    pub fn from_continuous_matrix_forward_euler_checked(
+    pub fn from_continuous_matrix_forward_euler(
         mat_ac: &na::DMatrix<f64>,
         mat_bc: &na::DMatrix<f64>,
         mat_cc: &na::DMatrix<f64>,
@@ -410,7 +410,7 @@ impl DiscreteStateSpaceModel {
         model: &ContinuousStateSpaceModel,
         sampling_dt: f64,
     ) -> Result<DiscreteStateSpaceModel, ModelError> {
-        Self::from_continuous_matrix_forward_euler_checked(
+        Self::from_continuous_matrix_forward_euler(
             model.mat_a(),
             model.mat_b(),
             model.mat_c(),
@@ -455,25 +455,6 @@ impl DiscreteStateSpaceModel {
     ) -> DiscreteStateSpaceModel {
         Self::from_continuous_forward_euler(model, sampling_dt)
             .expect("forward Euler discretization failed")
-    }
-
-    /// Legacy matrix-based constructor for forward Euler.
-    #[deprecated(note = "Use from_continuous_matrix_forward_euler_checked")]
-    pub fn from_continuous_matrix_forward_euler(
-        mat_ac: &na::DMatrix<f64>,
-        mat_bc: &na::DMatrix<f64>,
-        mat_cc: &na::DMatrix<f64>,
-        mat_dc: &na::DMatrix<f64>,
-        sampling_dt: f64,
-    ) -> DiscreteStateSpaceModel {
-        Self::from_continuous_matrix_forward_euler_checked(
-            mat_ac,
-            mat_bc,
-            mat_cc,
-            mat_dc,
-            sampling_dt,
-        )
-        .expect("forward Euler discretization failed")
     }
 }
 
