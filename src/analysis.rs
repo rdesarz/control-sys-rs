@@ -39,6 +39,15 @@ pub struct LtiAnalysisReport {
     pub observability: RankDiagnostics,
 }
 
+/// Nyquist-ready frequency response data.
+#[derive(Debug, Clone)]
+pub struct NyquistData {
+    /// Angular frequencies in rad/s.
+    pub omega: Vec<f64>,
+    /// Complex-valued transfer matrix samples `G(j*omega[k])`.
+    pub response: Vec<na::DMatrix<na::Complex<f64>>>,
+}
+
 /// Computes the controllability matrix `[B, AB, ..., A^(n-1)B]`.
 #[allow(clippy::toplevel_ref_arg)]
 pub fn compute_controllability_matrix(
@@ -212,6 +221,58 @@ pub fn analyze_lti<T: StateSpaceModel + Pole>(
         is_stable,
         controllability,
         observability,
+    })
+}
+
+/// Evaluates the frequency response matrix `G(j*omega)` for a state-space model.
+///
+/// For each angular frequency `omega` (rad/s), this computes:
+///
+/// `G(j*omega) = C * (j*omega*I - A)^-1 * B + D`
+pub fn frequency_response<T: StateSpaceModel>(
+    model: &T,
+    omega: f64,
+) -> Result<na::DMatrix<na::Complex<f64>>, ModelError> {
+    if !omega.is_finite() {
+        return Err(ModelError::InvalidFrequency(omega));
+    }
+
+    let mat_a = model.mat_a();
+    let n_states = mat_a.nrows();
+
+    let j_omega = na::Complex::new(0.0, omega);
+    let mat_a_c = mat_a.map(|v| na::Complex::new(v, 0.0));
+    let mat_b_c = model.mat_b().map(|v| na::Complex::new(v, 0.0));
+    let mat_c_c = model.mat_c().map(|v| na::Complex::new(v, 0.0));
+    let mat_d_c = model.mat_d().map(|v| na::Complex::new(v, 0.0));
+
+    let jw_i = na::DMatrix::<na::Complex<f64>>::identity(n_states, n_states) * j_omega;
+    let resolvent = jw_i - mat_a_c;
+    let Some(inv) = resolvent.try_inverse() else {
+        return Err(ModelError::SingularMatrix(
+            "frequency response: (j*omega*I - A) is singular",
+        ));
+    };
+
+    Ok(mat_c_c * inv * mat_b_c + mat_d_c)
+}
+
+/// Computes Nyquist data from a frequency grid.
+///
+/// Returns one transfer matrix sample per frequency in `omega`.
+pub fn nyquist_data<T: StateSpaceModel>(
+    model: &T,
+    omega: &[f64],
+) -> Result<NyquistData, ModelError> {
+    let mut response = Vec::with_capacity(omega.len());
+
+    for w in omega.iter().copied() {
+        response.push(frequency_response(model, w)?);
+    }
+
+    Ok(NyquistData {
+        omega: omega.to_vec(),
+        response,
     })
 }
 
@@ -422,5 +483,60 @@ mod tests {
         assert!(report.spectral_radius < 1.0);
         assert_eq!(report.controllability.expected_rank, 2);
         assert_eq!(report.observability.expected_rank, 2);
+    }
+
+    // Verifies frequency response for G(s)=1/(s+1) at omega=1 rad/s.
+    #[test]
+    fn test_frequency_response_first_order_scalar() {
+        let model = crate::model::ContinuousStateSpaceModel::try_from_matrices(
+            &na::dmatrix![-1.0],
+            &na::dmatrix![1.0],
+            &na::dmatrix![1.0],
+            &na::dmatrix![0.0],
+        )
+        .unwrap();
+
+        let g = frequency_response(&model, 1.0).unwrap();
+        let expected = na::Complex::new(0.5, -0.5);
+
+        assert_eq!(g.shape(), (1, 1));
+        assert!((g[(0, 0)] - expected).norm() < 1e-10);
+    }
+
+    // Verifies Nyquist helper preserves sample order and values.
+    #[test]
+    fn test_nyquist_data_first_order_scalar() {
+        let model = crate::model::ContinuousStateSpaceModel::try_from_matrices(
+            &na::dmatrix![-1.0],
+            &na::dmatrix![1.0],
+            &na::dmatrix![1.0],
+            &na::dmatrix![0.0],
+        )
+        .unwrap();
+
+        let omega = vec![0.0, 1.0, 2.0];
+        let data = nyquist_data(&model, &omega).unwrap();
+
+        assert_eq!(data.omega, omega);
+        assert_eq!(data.response.len(), 3);
+        assert!((data.response[0][(0, 0)] - na::Complex::new(1.0, 0.0)).norm() < 1e-10);
+    }
+
+    // Verifies non-finite frequency values are rejected.
+    #[test]
+    fn test_frequency_response_rejects_non_finite_frequency() {
+        let model = crate::model::ContinuousStateSpaceModel::try_from_matrices(
+            &na::dmatrix![-1.0],
+            &na::dmatrix![1.0],
+            &na::dmatrix![1.0],
+            &na::dmatrix![0.0],
+        )
+        .unwrap();
+
+        let err = frequency_response(&model, f64::NAN).unwrap_err();
+        match err {
+            ModelError::InvalidFrequency(omega) => assert!(omega.is_nan()),
+            other => panic!("expected InvalidFrequency, got {other:?}"),
+        }
     }
 }

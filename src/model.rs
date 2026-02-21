@@ -39,6 +39,8 @@ pub enum ModelError {
     },
     /// Sampling time is invalid.
     InvalidSamplingDt(f64),
+    /// Frequency sample is invalid.
+    InvalidFrequency(f64),
     /// Matrix inversion failed.
     SingularMatrix(&'static str),
 }
@@ -56,6 +58,9 @@ impl fmt::Display for ModelError {
             ),
             ModelError::InvalidSamplingDt(dt) => {
                 write!(f, "sampling_dt must be finite and > 0.0, got {dt}")
+            }
+            ModelError::InvalidFrequency(omega) => {
+                write!(f, "frequency sample must be finite, got {omega}")
             }
             ModelError::SingularMatrix(ctx) => write!(f, "matrix inversion failed: {ctx}"),
         }
@@ -382,7 +387,6 @@ impl DiscreteStateSpaceModel {
             sampling_dt,
         )
     }
-
 }
 
 impl Pole for DiscreteStateSpaceModel {
