@@ -1,3 +1,15 @@
+//! State-space model primitives and discretization utilities.
+//!
+//! This module defines continuous and discrete LTI state-space models:
+//!
+//! - Continuous: `x_dot = A x + B u`, `y = C x + D u`
+//! - Discrete: `x[k+1] = A x[k] + B u[k]`, `y[k] = C x[k] + D u[k]`
+//!
+//! It also provides multiple continuous-to-discrete conversion methods:
+//!
+//! - Exact ZOH (augmented matrix exponential)
+//! - Tustin (bilinear transform)
+
 extern crate nalgebra as na;
 
 use std::error::Error;
@@ -143,6 +155,13 @@ pub struct ContinuousStateSpaceModel {
 /// Represents a continuous state-space model.
 impl ContinuousStateSpaceModel {
     /// Creates a new `ContinuousStateSpaceModel` with full dimension checks.
+    ///
+    /// The following compatibility constraints are enforced:
+    ///
+    /// - `A` is square `(n x n)`
+    /// - `B` is `(n x m)`
+    /// - `C` is `(p x n)`
+    /// - `D` is `(p x m)`
     pub fn try_from_matrices(
         mat_a: &na::DMatrix<f64>,
         mat_b: &na::DMatrix<f64>,
@@ -200,7 +219,9 @@ impl ContinuousStateSpaceModel {
         Self::try_from_matrices(&mat_a, &mat_b, &mat_c, &mat_d)
     }
 
-    /// Returns the size of the state-space model.
+    /// Returns the number of states `n` of the model.
+    ///
+    /// This equals the number of columns of `A` (and rows of `A` since `A` is square).
     pub fn state_space_size(&self) -> usize {
         self.mat_a.ncols()
     }
@@ -268,6 +289,9 @@ impl StateSpaceModel for DiscreteStateSpaceModel {
 
 impl DiscreteStateSpaceModel {
     /// Creates a new `DiscreteStateSpaceModel` with matrix and sampling-time checks.
+    ///
+    /// Matrix compatibility is identical to [`ContinuousStateSpaceModel::try_from_matrices`],
+    /// with the additional constraint that `sampling_dt > 0` and finite.
     pub fn try_from_matrices(
         mat_a: &na::DMatrix<f64>,
         mat_b: &na::DMatrix<f64>,
@@ -301,6 +325,20 @@ impl DiscreteStateSpaceModel {
     }
 
     /// Discretizes a continuous model using exact zero-order hold (ZOH).
+    ///
+    /// For continuous dynamics `x_dot = A x + B u` with piecewise-constant input,
+    /// this computes:
+    ///
+    /// - `A_d = exp(A * dt)`
+    /// - `B_d = integral_0^dt exp(A * tau) d tau * B`
+    ///
+    /// The implementation uses the standard augmented matrix exponential:
+    ///
+    /// ```text
+    /// exp([A*dt  B*dt]
+    ///     [  0      0 ]) = [A_d  B_d]
+    ///                       [ 0    I ]
+    /// ```
     pub fn from_continuous_matrix_zoh(
         mat_ac: &na::DMatrix<f64>,
         mat_bc: &na::DMatrix<f64>,
@@ -328,47 +366,14 @@ impl DiscreteStateSpaceModel {
         Self::try_from_matrices(&mat_a, &mat_b, mat_cc, mat_dc, sampling_dt)
     }
 
-    /// Discretizes a continuous model using explicit forward Euler.
-    pub fn from_continuous_matrix_forward_euler(
-        mat_ac: &na::DMatrix<f64>,
-        mat_bc: &na::DMatrix<f64>,
-        mat_cc: &na::DMatrix<f64>,
-        mat_dc: &na::DMatrix<f64>,
-        sampling_dt: f64,
-    ) -> Result<DiscreteStateSpaceModel, ModelError> {
-        validate_state_space_dimensions(mat_ac, mat_bc, mat_cc, mat_dc)?;
-        validate_sampling_dt(sampling_dt)?;
-
-        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
-        let mat_a = mat_i + mat_ac.scale(sampling_dt);
-        let mat_b = mat_bc.scale(sampling_dt);
-
-        Self::try_from_matrices(&mat_a, &mat_b, mat_cc, mat_dc, sampling_dt)
-    }
-
-    /// Discretizes a continuous model using implicit backward Euler.
-    pub fn from_continuous_matrix_backward_euler(
-        mat_ac: &na::DMatrix<f64>,
-        mat_bc: &na::DMatrix<f64>,
-        mat_cc: &na::DMatrix<f64>,
-        mat_dc: &na::DMatrix<f64>,
-        sampling_dt: f64,
-    ) -> Result<DiscreteStateSpaceModel, ModelError> {
-        validate_state_space_dimensions(mat_ac, mat_bc, mat_cc, mat_dc)?;
-        validate_sampling_dt(sampling_dt)?;
-
-        let mat_i = na::DMatrix::<f64>::identity(mat_ac.nrows(), mat_ac.nrows());
-        let inv = (mat_i - mat_ac.scale(sampling_dt))
-            .try_inverse()
-            .ok_or(ModelError::SingularMatrix("I - A*dt for backward Euler"))?;
-
-        let mat_a = inv.clone();
-        let mat_b = inv * mat_bc.scale(sampling_dt);
-
-        Self::try_from_matrices(&mat_a, &mat_b, mat_cc, mat_dc, sampling_dt)
-    }
-
     /// Discretizes a continuous model using the bilinear/Tustin transform.
+    ///
+    /// This corresponds to:
+    ///
+    /// - `A_d = (I - A*dt/2)^-1 * (I + A*dt/2)`
+    /// - `B_d = (I - A*dt/2)^-1 * B*dt`
+    ///
+    /// It requires inversion of `I - A*dt/2`.
     pub fn from_continuous_matrix_tustin(
         mat_ac: &na::DMatrix<f64>,
         mat_bc: &na::DMatrix<f64>,
@@ -392,6 +397,8 @@ impl DiscreteStateSpaceModel {
     }
 
     /// Discretizes a continuous model using exact ZOH.
+    ///
+    /// See [`DiscreteStateSpaceModel::from_continuous_matrix_zoh`] for equations.
     pub fn from_continuous_zoh(
         model: &ContinuousStateSpaceModel,
         sampling_dt: f64,
@@ -405,35 +412,9 @@ impl DiscreteStateSpaceModel {
         )
     }
 
-    /// Discretizes a continuous model using explicit forward Euler.
-    pub fn from_continuous_forward_euler(
-        model: &ContinuousStateSpaceModel,
-        sampling_dt: f64,
-    ) -> Result<DiscreteStateSpaceModel, ModelError> {
-        Self::from_continuous_matrix_forward_euler(
-            model.mat_a(),
-            model.mat_b(),
-            model.mat_c(),
-            model.mat_d(),
-            sampling_dt,
-        )
-    }
-
-    /// Discretizes a continuous model using implicit backward Euler.
-    pub fn from_continuous_backward_euler(
-        model: &ContinuousStateSpaceModel,
-        sampling_dt: f64,
-    ) -> Result<DiscreteStateSpaceModel, ModelError> {
-        Self::from_continuous_matrix_backward_euler(
-            model.mat_a(),
-            model.mat_b(),
-            model.mat_c(),
-            model.mat_d(),
-            sampling_dt,
-        )
-    }
-
     /// Discretizes a continuous model using Tustin.
+    ///
+    /// See [`DiscreteStateSpaceModel::from_continuous_matrix_tustin`] for equations.
     pub fn from_continuous_tustin(
         model: &ContinuousStateSpaceModel,
         sampling_dt: f64,
@@ -447,15 +428,6 @@ impl DiscreteStateSpaceModel {
         )
     }
 
-    /// Converts a continuous state-space model to a discrete model using forward Euler.
-    #[deprecated(note = "Use from_continuous_forward_euler")]
-    pub fn from_continuous_ss_forward_euler(
-        model: &ContinuousStateSpaceModel,
-        sampling_dt: f64,
-    ) -> DiscreteStateSpaceModel {
-        Self::from_continuous_forward_euler(model, sampling_dt)
-            .expect("forward Euler discretization failed")
-    }
 }
 
 impl Pole for DiscreteStateSpaceModel {
@@ -539,6 +511,10 @@ fn matrix_exponential(mat: &na::DMatrix<f64>) -> na::DMatrix<f64> {
         return na::DMatrix::<f64>::zeros(0, 0);
     }
 
+    // Scaling-and-series approximation:
+    // 1) choose a power-of-two scale so ||A/scale|| is small,
+    // 2) evaluate exp(A/scale) by truncated Taylor series,
+    // 3) square the result repeatedly to recover exp(A).
     let norm_one = max_column_sum_norm(mat);
     let scaling_power = if norm_one <= 0.5 {
         0
@@ -553,6 +529,7 @@ fn matrix_exponential(mat: &na::DMatrix<f64>) -> na::DMatrix<f64> {
     let mut result = identity.clone();
     let mut term = identity;
 
+    // exp(M) = I + M + M^2/2! + M^3/3! + ...
     for k in 1..=64 {
         term = (&term * &scaled) / (k as f64);
         result += &term;
@@ -640,41 +617,6 @@ mod tests {
 
         assert_eq!(ss_model.mat_d().shape(), (1, 1));
         assert_eq!(ss_model.mat_d()[(0, 0)], 8.0f64);
-    }
-
-    // Verifies forward Euler discretization against first-order analytic values.
-    #[test]
-    fn test_discretization_forward_euler_first_order() {
-        let a = na::dmatrix![-2.0];
-        let b = na::dmatrix![1.0];
-        let c = na::dmatrix![1.0];
-        let d = na::dmatrix![0.0];
-        let dt = 0.1;
-
-        let model = DiscreteStateSpaceModel::from_continuous_matrix_forward_euler_checked(
-            &a, &b, &c, &d, dt,
-        )
-        .unwrap();
-
-        approx_eq_matrix(model.mat_a(), &na::dmatrix![0.8], 1e-12);
-        approx_eq_matrix(model.mat_b(), &na::dmatrix![0.1], 1e-12);
-    }
-
-    // Verifies backward Euler discretization against first-order analytic values.
-    #[test]
-    fn test_discretization_backward_euler_first_order() {
-        let a = na::dmatrix![-2.0];
-        let b = na::dmatrix![1.0];
-        let c = na::dmatrix![1.0];
-        let d = na::dmatrix![0.0];
-        let dt = 0.1;
-
-        let model =
-            DiscreteStateSpaceModel::from_continuous_matrix_backward_euler(&a, &b, &c, &d, dt)
-                .unwrap();
-
-        approx_eq_matrix(model.mat_a(), &na::dmatrix![1.0 / 1.2], 1e-12);
-        approx_eq_matrix(model.mat_b(), &na::dmatrix![dt / 1.2], 1e-12);
     }
 
     // Verifies Tustin discretization against first-order analytic values.

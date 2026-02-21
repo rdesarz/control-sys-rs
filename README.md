@@ -9,8 +9,6 @@
 - Checked model constructors with typed errors (`ModelError`)
 - Continuous-to-discrete conversion with explicit methods:
   - ZOH
-  - Forward Euler
-  - Backward Euler
   - Tustin
 - Time-domain simulation with full output equation `y = Cx + Du`
 - Controllability and observability analysis
@@ -48,11 +46,9 @@ assert!(is_ctrb);
 `DiscreteStateSpaceModel` has explicit conversion methods:
 
 - `from_continuous_zoh`: exact ZOH (recommended default)
-- `from_continuous_forward_euler`: explicit Euler
-- `from_continuous_backward_euler`: implicit Euler
 - `from_continuous_tustin`: bilinear transform
 
-Use ZOH unless you explicitly need the numerical behavior of a different method.
+Use ZOH by default for sampled-data systems with held inputs.
 
 ## Running checks
 
